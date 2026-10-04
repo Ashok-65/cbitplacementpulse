@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css%20folder/style.css?v=20261003-dashboard5">
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="brand">PlaceTrack</div>
+            <ul class="sidebar-menu">
+                <li class="active"><a href="#overview" data-tab="overview" onclick="switchTab('overview')">Overview</a></li>
+                <li><a href="#placements" data-tab="placements" onclick="switchTab('placements')">Placements</a></li>
+                <li><a href="#insights" data-tab="insights" onclick="switchTab('insights')">Insights</a></li>
+                <li><a href="#settings" data-tab="settings" onclick="switchTab('settings')">Settings</a></li>
+            </ul>
+        </aside>
+
+        <main class="content">
+            <div id="backendStatus" class="connection-notice hidden" role="alert" aria-live="assertive">
+                <div>
+                    <strong>Placement data is unavailable</strong>
+                    <p id="backendStatusMessage">The dashboard could not connect to the Flask data service.</p>
+                </div>
+                <a href="http://127.0.0.1:5000/dashboard.html">Open local dashboard</a>
+            </div>
+            <section id="overview" class="section active">
+                <div class="topbar">
+                    <div>
+                        <p class="eyebrow">Placement intelligence</p>
+                        <h1>Dashboard Overview</h1>
+                    </div>
+                    <label class="overview-year-control" for="overviewYear">
+                        Academic year
+                        <select id="overviewYear" aria-label="Select overview academic year" onchange="selectOverviewYear(this.value)">
+                            <option value="all">All years</option>
+                        </select>
+                    </label>
+                    <a href="#overview" class="btn btn-secondary" onclick="switchTab('overview')">Overview</a>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">👥</div>
+                        <div class="stat-meta">
+                            <span class="stat-label">Total Students</span>
+                            <h3 id="totalStudents">0</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">✅</div>
+                        <div class="stat-meta">
+                            <span class="stat-label">Placed</span>
+                            <h3 id="placedStudents">0</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">🎓</div>
+                        <div class="stat-meta">
+                            <span class="stat-label">Placement Rate</span>
+                            <h3 id="placementRate">0%</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">↗</div>
+                        <div class="stat-meta">
+                            <span class="stat-label">Imported Offers</span>
+                            <h3 id="offerCount">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-heading">
+                            <h3>Students by Branch</h3>
+                            <button class="chart-expand" type="button" data-chart="stream" title="Expand students by branch chart" aria-label="Expand students by branch chart">⤢</button>
+                        </div>
+                        <canvas id="streamChart" height="220"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-heading">
+                            <h3>Offers by Company</h3>
+                            <button class="chart-expand" type="button" data-chart="company" title="Expand offers by company chart" aria-label="Expand offers by company chart">⤢</button>
+                        </div>
+                        <canvas id="companyChart" height="220"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-heading">
+                            <h3>Official Placement Trend</h3>
+                            <button class="chart-expand" type="button" data-chart="trend" title="Expand placement trend chart" aria-label="Expand placement trend chart">⤢</button>
+                        </div>
+                        <canvas id="trendChart" height="220"></canvas>
+                    </div>
+                </div>
+
+                <div id="chartModal" class="chart-modal hidden" role="dialog" aria-modal="true" aria-labelledby="chartModalTitle">
+                    <div class="chart-modal-panel">
+                        <header class="chart-modal-header">
+                            <h2 id="chartModalTitle">Chart details</h2>
+                            <button id="closeChartModal" class="chart-modal-close" type="button" aria-label="Close expanded chart">×</button>
+                        </header>
+                        <div id="chartModalBody" class="chart-modal-body"></div>
+                    </div>
+                </div>
+
+                <section class="yearly-panel" aria-labelledby="yearlyHeading">
+                    <div class="yearly-panel-heading">
+                        <div>
+                            <p class="eyebrow">Official cohort data</p>
+                            <h2 id="yearlyHeading">Placement by year</h2>
+                        </div>
+                        <a id="yearlySourceLink" href="https://cbit.ac.in/placement_post/year-wise-placements-2021/" target="_blank" rel="noopener noreferrer">CBIT yearly source</a>
+                    </div>
+                    <p class="yearly-note">Recruiters are offer counts from CBIT workbooks. Package figures are featured CBIT highlights, not confirmed cohort maxima.</p>
+                    <div id="yearlyInsights" class="yearly-insights" aria-live="polite">
+                        <p class="muted">Loading yearly data...</p>
+                    </div>
+                </section>
+            </section>
+
+            <section id="placements" class="section">
+                <form id="placementSearchForm" class="toolbar" onsubmit="event.preventDefault(); applyFilters()">
+                    <div class="search-shell">
+                        <input id="filterName" type="text" placeholder="Search names, companies or roles..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="searchSuggestions">
+                        <div id="searchSuggestions" class="search-suggestions hidden" role="listbox" aria-label="Alumni suggestions"></div>
+                    </div>
+                    <select id="filterBranch" aria-label="Filter by branch">
+                        <option value="">All branches</option>
+                    </select>
+                    <select id="filterPlacementYear" aria-label="Filter by placement year">
+                        <option value="">All placement years</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetPlacementFilters()">Clear</button>
+                </form>
+
+                <div class="quick-filters">
+                    <button class="quick-chip active" data-filter="all">All</button>
+                    <button class="quick-chip" data-filter="placed">Placed</button>
+                    <button class="quick-chip" data-filter="higher">Higher Studies</button>
+                </div>
+
+                <div class="results-heading">
+                    <div>
+                        <h2>Alumni directory</h2>
+                        <p id="resultsSummary" class="muted">Loading verified placement records...</p>
+                    </div>
+                </div>
+
+                <div class="recent-searches-wrap panel">
+                    <h4>Recent searches</h4>
+                    <div id="recentSearches" class="recent-searches"></div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Class</th>
+                                <th>Branch</th>
+                                <th>Company</th>
+                                <th>Placed in</th>
+                                <th>Package</th>
+                            </tr>
+                        </thead>
+                        <tbody id="placementTable"></tbody>
+                    </table>
+                </div>
+                <div class="pagination-controls">
+                    <button id="previousPage" type="button" class="btn btn-secondary" onclick="changePage(-1)" disabled>Previous</button>
+                    <span id="pageStatus" class="muted" aria-live="polite">Page 1</span>
+                    <button id="nextPage" type="button" class="btn btn-secondary" onclick="changePage(1)" disabled>Next</button>
+                </div>
+
+                <div id="studentDetailCard" class="student-detail-card hidden">
+                    <h3>Alumni profile</h3>
+                    <div id="studentDetailContent"></div>
+                </div>
+            </section>
+
+            <section id="insights" class="section">
+                <div class="panel">
+                    <h2>Top Companies</h2>
+                    <div id="topCompanies" class="company-list"></div>
+                </div>
+                <div class="panel">
+                    <h2>File Upload</h2>
+                    <input id="fileInput" type="file" accept=".csv">
+                    <button class="btn btn-primary" onclick="handleFileSelect()">Upload CSV</button>
+                    <a class="btn btn-secondary" href="/api/import-template">Download CSV template</a>
+                    <p id="importStatus" class="muted" role="status" aria-live="polite"></p>
+                    <p class="muted">LinkedIn profiles are stored as links; placement data must come from a verified import.</p>
+                    <button id="seedDataButton" class="btn btn-secondary" onclick="seedSampleData().then(() => alert('Sample data loaded successfully!')).catch(err => alert(err.message))">Load Sample Data</button>
+                </div>
+            </section>
+
+            <section id="settings" class="section">
+                <div class="panel">
+                    <h2>Export</h2>
+                    <button class="btn btn-primary" onclick="exportData('csv')">Export CSV</button>
+                    <button class="btn btn-secondary" onclick="exportData('json')">Export JSON</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js%20folder/api.js?v=20261003-dashboard5"></script>
+    <script src="js%20folder/main.js?v=20261003-dashboard5"></script>
+</body>
+</html>

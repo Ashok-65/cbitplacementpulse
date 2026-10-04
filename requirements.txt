@@ -1,0 +1,8 @@
+Flask
+Flask-Cors
+Flask-SQLAlchemy
+SQLAlchemy>=2.0.16,<2.1
+python-dotenv
+openpyxl
+pypdf
+gunicorn

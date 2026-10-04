@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+instance/
+Backend/instance/
+
+# Editor and test artifacts
+.vscode/
+.pytest_cache/
+.mypy_cache/

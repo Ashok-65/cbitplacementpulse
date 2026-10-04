@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1118">
+    <title>PlacementPulse | College Placement Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+    <script src="https://unpkg.com/compromise"></script>
+    <style>
+        :root { color-scheme: dark; --ink: #121619; --panel: #1a2023; --line: #30393b; --muted: #9aa4a4; --lime: #a9b9aa; --cyan: #91aab0; --accent: #b9a98c; }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { position: relative; isolation: isolate; margin: 0; min-width: 320px; color: #e8ebea; background-color: var(--ink); background-image: radial-gradient(ellipse at 12% 0%, rgba(145, 170, 176, .09), transparent 34%), linear-gradient(rgba(165, 178, 170, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(165, 178, 170, .025) 1px, transparent 1px); background-size: auto, 40px 40px, 40px 40px; font-family: "DM Sans", sans-serif; }
+        body::before { position: fixed; inset: -28%; z-index: -1; background: radial-gradient(ellipse at 22% 20%, rgba(116, 150, 139, .12), transparent 34%), radial-gradient(ellipse at 78% 36%, rgba(119, 148, 157, .1), transparent 31%), radial-gradient(ellipse at 58% 84%, rgba(156, 133, 102, .07), transparent 36%); content: ""; pointer-events: none; transform: translate3d(0, 0, 0); will-change: transform; animation: ambient-drift 32s ease-in-out infinite alternate; }
+        @keyframes ambient-drift { from { transform: translate3d(-1.5%, -1%, 0) scale(1); } to { transform: translate3d(1.5%, 1%, 0) scale(1.035); } }
+        h1, h2, h3, .section-kicker { font-family: "Manrope", sans-serif; }
+        .mono { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+        body.assistant-open { overflow: hidden; }
+        button, select { font: inherit; }
+        .shell { width: min(1440px, calc(100% - 48px)); margin-inline: auto; }
+        .panel { min-width: 0; background: rgba(26, 32, 35, .96); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 28px rgba(0, 0, 0, .1); }
+        .panel, .filter-bar, .hero-photo, .branch-browser { transition: border-color .24s ease, box-shadow .24s ease; }
+        .panel:hover { border-color: rgba(169, 185, 170, .3); }
+        .reveal-on-scroll { opacity: 0; transform: translate3d(0, 14px, 0); transition: opacity .58s cubic-bezier(.2,.7,.2,1), transform .58s cubic-bezier(.2,.7,.2,1); transition-delay: var(--reveal-delay, 0ms); }
+        .reveal-on-scroll.is-visible { opacity: 1; transform: translate3d(0, 0, 0); }
+        .welcome-toast { position: fixed; top: max(94px, calc(82px + env(safe-area-inset-top))); right: 78px; z-index: 45; display: flex; width: min(350px, calc(100vw - 112px)); align-items: flex-start; gap: 12px; border: 1px solid rgba(169, 185, 170, .32); border-radius: 14px; background: rgba(24, 31, 32, .96); padding: 15px; color: #dce4dd; box-shadow: 0 18px 54px rgba(0, 0, 0, .38); backdrop-filter: blur(12px); opacity: 0; pointer-events: none; transform: translate3d(0, -10px, 0); transition: opacity .22s ease, transform .22s ease; }
+        .welcome-toast.is-open { opacity: 1; pointer-events: auto; transform: translate3d(0, 0, 0); }
+        .welcome-toast-mark { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border: 1px solid rgba(169, 185, 170, .25); border-radius: 10px; background: rgba(145, 170, 176, .12); color: #d4dfd6; }
+        .welcome-toast-close { display: grid; width: 40px; height: 40px; flex: none; place-items: center; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #9aa4a4; font-size: 20px; transition: color .16s ease, background .16s ease; }
+        .welcome-toast-close:hover { background: rgba(255, 255, 255, .06); color: white; }
+        .welcome-toast[hidden] { display: none; }
+        @media (max-width: 1023px) { .welcome-toast { display: none !important; } }
+        .hero-photo { position: relative; min-height: 205px; overflow: hidden; border: 1px solid rgba(190, 205, 194, .2); border-radius: 12px; background: #202a2a; }
+        .hero-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 46%; opacity: .78; transition: transform .5s ease, opacity .3s ease; }
+        .hero-photo:hover img { transform: scale(1.035); opacity: .9; }
+        .hero-photo::after { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10, 16, 16, .08), rgba(10, 16, 16, .18) 42%, rgba(10, 16, 16, .88)); content: ""; }
+        .hero-photo-copy { position: absolute; inset: auto 18px 18px auto; z-index: 1; width: min(230px, 72%); text-align: right; }
+        .college-logo { width: 46px; height: 46px; flex: none; border-radius: 9px; background: #fff; object-fit: contain; padding: 3px; }
+        .hero-shortcut { min-height: 40px; border: 1px solid rgba(188, 201, 191, .22); border-radius: 999px; background: rgba(29, 38, 36, .78); padding: 0 13px; color: #d6dfd7; font-size: 11px; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+        .hero-shortcut:hover { transform: translateY(-2px); border-color: rgba(202, 219, 202, .58); background: rgba(50, 64, 57, .9); }
+        .branch-browser { position: relative; isolation: isolate; overflow: hidden; border: 1px solid rgba(145, 170, 176, .18); border-radius: 12px; background: linear-gradient(115deg, rgba(28, 37, 38, .94), rgba(21, 29, 31, .78)); padding: 14px; }
+        .branch-browser::before { position: absolute; inset: -80% auto -80% -38%; z-index: -1; width: 28%; background: linear-gradient(90deg, transparent, rgba(204, 221, 207, .08), transparent); content: ""; transform: rotate(18deg) translateX(-160%); animation: branch-sweep 8s ease-in-out infinite; }
+        .branch-chip { min-height: 38px; flex: none; border: 1px solid rgba(169, 185, 170, .24); border-radius: 999px; background: rgba(16, 23, 24, .72); padding: 0 13px; color: #c9d2cc; font-size: 11px; font-weight: 600; animation: chip-arrive .42s cubic-bezier(.2,.75,.25,1) backwards; animation-delay: var(--chip-delay, 0ms); transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+        .branch-chip:hover, .branch-chip.is-active { transform: translateY(-2px); border-color: rgba(188, 210, 191, .72); background: rgba(101, 130, 112, .24); color: #f1f5ef; box-shadow: 0 6px 20px rgba(120, 156, 130, .12); }
+        .branch-chip-all { color: #e2cda9; border-color: rgba(185, 169, 140, .38); }
+        .year-card { position: relative; min-width: 0; overflow: hidden; border: 1px solid rgba(154, 164, 164, .16); border-radius: 11px; background: linear-gradient(145deg, rgba(29, 37, 39, .98), rgba(21, 27, 29, .96)); padding: 16px; text-align: left; transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .year-card::after { position: absolute; inset: auto -20% -70% 24%; height: 95px; border-radius: 50%; background: radial-gradient(ellipse, rgba(145, 170, 176, .14), transparent 70%); content: ""; pointer-events: none; }
+        .year-card:hover, .year-card.is-selected { transform: translateY(-3px); border-color: rgba(169, 185, 170, .48); box-shadow: 0 14px 32px rgba(0, 0, 0, .22); }
+        .year-progress { height: 4px; overflow: hidden; border-radius: 99px; background: #303a3b; }
+        .year-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #91aab0, #b9a98c); transform-origin: left; animation: progress-enter .8s cubic-bezier(.2,.7,.2,1) both; }
+        @keyframes chip-arrive { from { opacity: .55; } to { opacity: 1; } }
+        @keyframes branch-sweep { 0%, 62%, 100% { transform: rotate(18deg) translateX(-160%); } 78% { transform: rotate(18deg) translateX(520%); } }
+        @keyframes progress-enter { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        .filter-select { min-height: 44px; }
+        .filter-reset { min-height: 44px; }
+        .cohort-placed-button { border: 0; background: transparent; cursor: pointer; }
+        .cohort-placed-button:hover { color: #d6e3d8; text-decoration: underline; text-underline-offset: 4px; }
+        .interactive-chart canvas { cursor: pointer; }
+        .footer-data-status { display: inline-flex; align-items: center; gap: 7px; color: #aeb9b0; }
+        .footer-data-status::before { width: 7px; height: 7px; flex: none; border-radius: 50%; background: #93bd9b; content: ""; }
+        .footer-data-status.is-error::before { background: #d78576; }
+        .section-kicker { color: #aebcae; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .filter-select { min-width: 132px; appearance: none; background: #171d20; border: 1px solid #3a4446; border-radius: 6px; color: #e8ebea; padding: 10px 34px 10px 12px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='m5 7.5 5 5 5-5' stroke='%239aa4a4' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 17px; }
+        .filter-select:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+        .chart-wrap { min-width: 0; height: 260px; position: relative; overflow: hidden; }
+        .chart-wrap canvas { max-width: 100%; }
+        .chart-expand { display: inline-grid; width: 32px; height: 32px; place-items: center; border: 1px solid #3a4446; border-radius: 6px; background: #171d20; color: #bdc5c1; transition: border-color .16s ease, color .16s ease, background .16s ease; }
+        .chart-expand:hover { border-color: #84938a; background: #242c2d; color: #fff; }
+        .chart-dialog { width: min(1100px, calc(100vw - 32px)); max-width: none; height: min(82vh, 820px); max-height: calc(100vh - 32px); padding: 20px; overflow: hidden; border: 1px solid #4b5753; border-radius: 10px; background: #171d20; color: #e8ebea; }
+        .chart-dialog::backdrop { background: rgba(5, 8, 9, .78); backdrop-filter: blur(5px); }
+        .chart-dialog[open] { animation: fade-up .2s ease-out both; }
+        .chart-dialog .chart-wrap { height: calc(100% - 58px); min-height: 300px; }
+        .assistant-launcher { position: fixed; right: 24px; bottom: 22px; z-index: 60; display: grid; width: 54px; height: 54px; place-items: center; border: 1px solid #89958b; border-radius: 50%; background: #cad2c9; color: #17201d; box-shadow: 0 12px 30px rgba(0, 0, 0, .36); transition: transform .18s ease, box-shadow .18s ease; }
+        .assistant-launcher:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(0, 0, 0, .42); }
+        .assistant-panel { position: fixed; right: 24px; bottom: 88px; z-index: 59; display: none; width: min(420px, calc(100vw - 32px)); height: min(650px, calc(100dvh - 120px)); overflow: hidden; border: 1px solid rgba(145, 170, 176, .4); border-radius: 12px; background: rgba(24, 30, 32, .96); box-shadow: 0 24px 70px rgba(0, 0, 0, .55); backdrop-filter: blur(12px); }
+        .assistant-panel.is-open { display: flex; flex-direction: column; animation: assistant-in .22s ease-out both; }
+        #siteHeader { position: sticky; top: 10px; z-index: 55; display: grid; grid-template-columns: minmax(215px, .85fr) minmax(280px, 1.5fr) auto; gap: clamp(18px, 3vw, 44px); min-height: 88px; align-items: center; margin-block: 10px 26px; padding: 12px 16px; border: 1px solid rgba(169, 185, 170, .2); border-radius: 17px; background: linear-gradient(110deg, rgba(24, 31, 32, .97), rgba(18, 24, 26, .94)); box-shadow: 0 12px 36px rgba(0, 0, 0, .2), inset 0 1px rgba(255, 255, 255, .035); backdrop-filter: blur(18px); }
+        .site-brand { display: flex; min-width: 0; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+        .site-brand:hover .college-logo { border-color: rgba(202, 219, 202, .66); transform: translateY(-1px); }
+        .site-brand-copy { min-width: 0; }
+        .site-brand-name { display: block; color: #f4f5f1; font: 800 clamp(16px, 1.45vw, 20px)/1.15 "Manrope", sans-serif; letter-spacing: -.045em; }
+        .site-brand-caption { display: flex; align-items: center; gap: 7px; margin-top: 5px; color: #aab5ad; font-size: 10px; font-weight: 600; letter-spacing: .055em; }
+        .site-brand-caption::before { width: 6px; height: 6px; border-radius: 50%; background: #a9b9aa; box-shadow: 0 0 10px rgba(169, 185, 170, .65); content: ""; }
+        #siteHeader .college-logo { width: 50px; height: 50px; padding: 5px; border: 1px solid rgba(255, 255, 255, .5); border-radius: 13px; box-shadow: 0 5px 18px rgba(0, 0, 0, .2); transition: border-color .2s ease, transform .2s ease; }
+        #siteHeader .search-shell { width: 100%; max-width: 620px; justify-self: center; }
+        #siteHeader .search-input { height: 48px; border-color: rgba(154, 164, 164, .24); border-radius: 12px; background: rgba(9, 14, 15, .58); padding-left: 42px; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+        #siteHeader .search-input:focus { border-color: rgba(169, 185, 170, .7); outline: none; background: rgba(10, 16, 17, .88); box-shadow: 0 0 0 4px rgba(169, 185, 170, .09); }
+        #siteHeader .search-icon { left: 15px; width: 16px; height: 16px; }
+        #siteHeader .search-hint { right: 11px; border: 1px solid rgba(154, 164, 164, .2); border-radius: 6px; background: rgba(255, 255, 255, .035); padding: 4px 6px; color: #a3aeaa; font-size: 9px; }
+        .menu-trigger { position: relative; display: inline-flex; min-width: 112px; min-height: 48px; align-items: center; justify-content: center; gap: 10px; border: 1px solid rgba(169, 185, 170, .3); border-radius: 12px; background: linear-gradient(145deg, rgba(48, 61, 55, .8), rgba(31, 41, 39, .8)); padding: 0 14px; color: #e5ebe5; font-size: 12px; font-weight: 700; letter-spacing: .015em; box-shadow: inset 0 1px rgba(255, 255, 255, .055); transition: border-color .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease, background .2s ease; }
+        .menu-trigger:hover, .menu-trigger[aria-expanded="true"] { transform: translateY(-1px); border-color: rgba(197, 210, 196, .72); background: linear-gradient(145deg, rgba(63, 80, 70, .92), rgba(38, 51, 46, .92)); color: #fff; box-shadow: 0 7px 20px rgba(0, 0, 0, .2), 0 0 22px rgba(169, 185, 170, .1); }
+        .menu-trigger svg { color: #c9d6ca; transition: transform .2s ease; }
+        .menu-trigger[aria-expanded="true"] svg { transform: rotate(90deg); }
+        .drawer-backdrop { position: fixed; inset: 0; z-index: 64; border: 0; background: rgba(5, 9, 10, .66); opacity: 0; visibility: hidden; pointer-events: none; backdrop-filter: blur(2px); transition: opacity .24s ease, visibility 0s linear .24s; }
+        .drawer-backdrop.is-open { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+        .navigation-drawer { position: fixed; inset: 0 0 0 auto; z-index: 70; display: flex; width: min(100vw, 24rem); height: 100vh; height: 100dvh; max-height: 100dvh; flex-direction: column; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); border-left: 1px solid rgba(145, 170, 176, .2); background: rgba(17, 23, 25, .99); box-shadow: -24px 0 70px rgba(0, 0, 0, .42); pointer-events: none; transform: translate3d(100%, 0, 0); transition: transform .32s cubic-bezier(.22, .72, .2, 1), visibility 0s linear .32s; visibility: hidden; }
+        .navigation-drawer.is-open { pointer-events: auto; transform: translate3d(0, 0, 0); visibility: visible; transition-delay: 0s; }
+        .navigation-drawer > div:first-child { position: sticky; top: 0; z-index: 2; flex: none; background: rgba(17, 23, 25, .99); padding-top: 4px; }
+        .drawer-link { display: flex; min-height: 62px; align-items: center; gap: 13px; border: 1px solid transparent; border-radius: 11px; padding: 0 13px; color: #cbd4cf; text-decoration: none; transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease; }
+        .drawer-link:hover, .drawer-link[aria-current="page"] { transform: translateX(-2px); border-color: rgba(169, 185, 170, .22); background: rgba(145, 170, 176, .1); color: #fff; }
+        .drawer-link-number { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border: 1px solid #394345; border-radius: 9px; background: #1b2426; color: #c4d2c7; font: 600 11px "IBM Plex Mono", monospace; }
+        .drawer-copy { display: block; min-width: 0; font-size: 12px; line-height: 1.5; color: #86918f; }
+        .drawer-heading { display: block; font-size: 14px; line-height: 1.4; font-weight: 700; color: #e8ebea; }
+        .drawer-section-label { margin-top: 24px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #889491; }
+        body.drawer-open { overflow: hidden; }
+        .story-card { min-width: 0; border: 1px solid rgba(154, 164, 164, .17); border-radius: 14px; background: linear-gradient(150deg, rgba(31, 40, 42, .98), rgba(21, 27, 29, .97)); box-shadow: 0 14px 38px rgba(0, 0, 0, .14); transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
+        .story-card:hover { transform: translateY(-4px); border-color: rgba(169, 185, 170, .38); box-shadow: 0 22px 48px rgba(0, 0, 0, .24); }
+        .spotlight-card { position: relative; overflow: hidden; }
+        .spotlight-card::before { position: absolute; top: -70px; right: -55px; width: 170px; height: 170px; border-radius: 50%; background: radial-gradient(circle, rgba(185, 169, 140, .13), transparent 68%); content: ""; pointer-events: none; }
+        .milestone-line { border-left: 1px solid rgba(169, 185, 170, .3); padding-left: 15px; }
+        .milestone { position: relative; padding-bottom: 11px; }
+        .milestone::before { position: absolute; top: 5px; left: -20px; width: 9px; height: 9px; border: 2px solid #a9b9aa; border-radius: 50%; background: #182022; content: ""; }
+        @media (max-width: 639px) {
+            .navigation-drawer { width: 100vw; border-left: 0; }
+            .drawer-link { min-height: 64px; }
+            .drawer-heading { font-size: 15px; }
+            .drawer-copy { font-size: 13px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .navigation-drawer, .drawer-backdrop, .menu-trigger, .drawer-link { transition-duration: .01ms !important; }
+            .navigation-drawer, .drawer-backdrop { transition-delay: 0s !important; }
+        }
+        .assistant-log { min-height: 0; flex: 1; overflow-y: auto; padding: 16px; scroll-behavior: smooth; }
+        .chat-message { max-width: 92%; border: 1px solid #35403f; border-radius: 9px; background: #202729; padding: 11px 12px; color: #dbe1dc; font-size: 12px; line-height: 1.65; }
+        .chat-message.user { margin-left: auto; border-color: #68766c; background: #29332d; color: #edf2e9; }
+        .chat-message h3 { margin: 2px 0 7px; color: #f0f2ee; font-size: 13px; font-weight: 700; }
+        .chat-message ul { margin: 5px 0 8px; padding-left: 17px; list-style: disc; }
+        .chat-message li + li { margin-top: 3px; }
+        .chat-message p + p { margin-top: 7px; }
+        .chat-message a { color: #c6d3c8; text-decoration: underline; text-underline-offset: 3px; }
+        .chat-shortcut { flex: none; border: 1px solid #3a4644; border-radius: 999px; padding: 7px 9px; color: #bbc5bd; font-size: 10px; white-space: nowrap; transition: background .16s ease, border-color .16s ease; }
+        .chat-shortcut:hover { border-color: #87958a; background: #252e2d; }
+        .chat-typing { display: flex; align-items: center; gap: 4px; padding: 5px 2px; }
+        .chat-typing span { width: 4px; height: 4px; border-radius: 50%; background: #adb9b0; animation: typing-bounce .8s infinite alternate; }
+        .chat-typing span:nth-child(2) { animation-delay: .16s; }
+        .chat-typing span:nth-child(3) { animation-delay: .32s; }
+        @keyframes assistant-in { from { opacity: 0; transform: translateY(10px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes typing-bounce { to { opacity: .3; transform: translateY(-3px); } }
+        .company-card { transition: border-color .18s ease, transform .18s ease; }
+        .company-card:hover { border-color: #496273; transform: translateY(-2px); }
+        .brand-mark { position: relative; display: grid; width: 40px; height: 40px; flex: none; place-items: center; overflow: hidden; border: 1px solid #48504e; border-radius: 6px; background: #252c2d; color: #d6ddd7; font-size: 11px; font-weight: 600; }
+        .company-logo { position: absolute; inset: 0; width: 100%; height: 100%; padding: 7px; background: #ecece8; object-fit: contain; }
+        .company-mark { position: relative; display: inline-grid; width: 36px; height: 36px; flex: none; place-items: center; overflow: hidden; border: 1px solid rgba(154, 164, 164, .24); border-radius: 9px; background: linear-gradient(145deg, #293334, #1d2527); color: #d7e0d9; font-size: 10px; font-weight: 700; letter-spacing: -.02em; }
+        .company-mark.is-small { width: 28px; height: 28px; border-radius: 7px; font-size: 9px; }
+        .company-mark.is-large { width: 42px; height: 42px; border-radius: 11px; font-size: 11px; }
+        .company-mark img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 5px; background: #f7f8f6; object-fit: contain; }
+        .employer-year-row { display: grid; grid-template-columns: minmax(78px, .7fr) minmax(120px, 1.4fr) minmax(130px, 2fr) minmax(105px, 1fr); width: 100%; min-height: 64px; align-items: center; gap: 12px; border: 1px solid rgba(154, 164, 164, .15); border-radius: 10px; background: rgba(19, 26, 28, .75); padding: 10px 14px; text-align: left; transition: background .18s ease, border-color .18s ease, transform .18s ease; }
+        .employer-year-row:hover { transform: translateY(-1px); border-color: rgba(169, 185, 170, .38); background: rgba(35, 45, 46, .95); }
+        @media (max-width: 639px) { .employer-year-row { grid-template-columns: minmax(70px, .8fr) minmax(100px, 1fr) minmax(70px, .7fr); gap: 8px; padding: 10px; } .employer-year-row .employer-samples { grid-column: 1 / -1; grid-row: 2; display: flex; } .employer-sample-name { display: none; } .employer-year-row > span:last-child { grid-column: 1 / -1; grid-row: 3; text-align: left; } }
+        .round-list { display: flex; gap: 8px; align-items: stretch; }
+        .round-step { min-width: 0; flex: 1; border: 1px solid #2a3947; background: #0c141d; border-radius: 8px; padding: 10px; }
+        .round-step:not(:last-child)::after { content: "›"; position: absolute; right: -7px; top: 50%; z-index: 1; transform: translateY(-50%); color: var(--lime); font-size: 20px; }
+        .task-check { accent-color: #c4f26a; width: 16px; height: 16px; flex: none; }
+        .progress-track { height: 8px; background: #26333e; border-radius: 999px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #c4f26a, #54d9e8); border-radius: inherit; transition: width .35s ease; }
+        .table-scroll { overflow-x: auto; }
+        .record-card { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 9px; background: rgba(26, 32, 35, .96); }
+        .record-table { width: 100%; min-width: 720px; border-collapse: collapse; }
+        .record-table th { color: #91a0af; font-size: 10px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase; text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+        .record-table td { padding: 14px 16px; border-bottom: 1px solid rgba(34, 48, 61, .72); font-size: 13px; }
+        .record-table tbody tr:last-child td { border-bottom: 0; }
+        .record-table tbody tr:hover { background: rgba(255, 255, 255, .025); }
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 9px; font-size: 10px; font-weight: 750; white-space: nowrap; }
+        .verified { color: #c3cec4; background: rgba(145, 170, 176, .1); border: 1px solid rgba(145, 170, 176, .22); }
+        .pending { color: #abb6c0; background: rgba(152, 166, 178, .1); border: 1px solid rgba(152, 166, 178, .18); }
+        .empty-state { display: none; }
+        .search-shell { position: relative; width: min(100%, 540px); }
+        .search-input { width: 100%; border: 1px solid #394345; border-radius: 7px; background: #171d20; padding: 10px 54px 10px 36px; color: #e8ebea; font-size: 13px; }
+        .search-input::placeholder { color: #818b8c; }
+        .search-icon { position: absolute; left: 12px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: #9aa4a4; pointer-events: none; }
+        .search-hint { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #818b8c; font: 10px "IBM Plex Mono", monospace; pointer-events: none; }
+        .search-dropdown { position: absolute; display: none; top: calc(100% + 8px); left: 0; right: 0; max-height: min(70vh, 500px); overflow-y: auto; z-index: 50; border: 1px solid #3b4648; border-radius: 8px; background: #1b2225; box-shadow: 0 18px 45px rgba(0, 0, 0, .42); transform-origin: top; }
+        .search-dropdown.is-open { display: block; animation: dropdown-in .16s ease-out both; }
+        .search-group + .search-group { border-top: 1px solid #30393b; }
+        .search-group-label { padding: 10px 12px 5px; color: #aab3b0; font: 10px "IBM Plex Mono", monospace; letter-spacing: .5px; text-transform: uppercase; }
+        .search-result { display: flex; width: 100%; align-items: center; gap: 9px; border: 0; background: transparent; padding: 8px 11px; color: #e8ebea; text-align: left; cursor: pointer; }
+        .search-result:hover, .search-result.is-active { background: #293332; }
+        .search-result-mark { display: grid; width: 28px; height: 28px; flex: none; place-items: center; border: 1px solid #485450; border-radius: 5px; color: #b5c3b5; font-size: 9px; font-weight: 700; }
+        .search-note { padding: 8px 12px 11px; color: #98a2a1; font-size: 11px; line-height: 1.5; }
+        .intent-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+        .intent-pill { border: 1px solid #4a514a; border-radius: 999px; background: rgba(185, 169, 140, .09); padding: 4px 8px; color: #d1c8b6; font: 10px "DM Sans", sans-serif; }
+        @keyframes dropdown-in { from { opacity: 0; transform: translateY(-4px) scaleY(.985); } to { opacity: 1; transform: translateY(0) scaleY(1); } }
+        @media (max-width: 700px) {
+            #siteHeader { top: 6px; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 14px; min-height: 0; margin-block: 6px 22px; padding: 10px; border-radius: 15px; }
+            .site-brand { gap: 10px; }
+            #siteHeader .college-logo { width: 44px; height: 44px; border-radius: 11px; }
+            .site-brand-name { font-size: 17px; }
+            .site-brand-caption { margin-top: 3px; font-size: 9px; }
+            #siteHeader .search-shell { grid-column: 1 / -1; grid-row: 2; width: 100%; max-width: none; }
+            #siteHeader .search-input { height: 46px; }
+            .menu-trigger { min-width: 98px; min-height: 44px; gap: 8px; padding-inline: 11px; font-size: 11px; }
+            .menu-trigger svg { width: 19px; height: 19px; }
+            .search-dropdown { position: fixed; left: 14px; right: 14px; top: calc(env(safe-area-inset-top) + 124px); max-height: 65vh; }
+        }
+        @media (max-width: 700px) {
+            .shell { width: min(100% - 28px, 1440px); }
+            .filter-bar { top: 0; }
+            .filter-bar > div { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+            .filter-select { flex: 0 0 140px; width: 140px; min-width: 140px; max-width: 140px; }
+            .filter-reset { flex: 0 0 auto; }
+            .chart-wrap { height: 230px; }
+            .round-list { gap: 5px; }
+            .round-step { padding: 8px 6px; }
+            .assistant-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); }
+            .assistant-panel { inset: 0; width: 100%; height: 100dvh; border: 0; border-radius: 0; }
+        }
+        @media (max-width: 380px) { .site-brand-caption { letter-spacing: 0; } .menu-trigger { min-width: 88px; gap: 6px; padding-inline: 9px; } }
+        @media (max-width: 767px) { .desktop-records { display: none; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } .reveal-on-scroll { opacity: 1; transform: none; } }
+    </style>
+</head>
+<body>
+    <aside id="desktopWelcome" class="welcome-toast" role="status" aria-label="Desktop viewing tip" hidden>
+        <span class="welcome-toast-mark" aria-hidden="true"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.5"></rect><path d="M8 21h8m-4-4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg></span>
+        <span class="min-w-0 flex-1"><strong class="block text-xs font-semibold text-white">Best on a larger screen</strong><span class="mt-1 block text-[11px] leading-5 text-slate-400">Charts and year-by-year details are easiest to explore on desktop. Mobile still works for quick checks.</span></span>
+        <button id="closeDesktopWelcome" class="welcome-toast-close" type="button" aria-label="Dismiss desktop viewing tip"><span aria-hidden="true">×</span></button>
+    </aside>
+    <header id="siteHeader" class="shell">
+        <a class="site-brand" href="#top" aria-label="PlacementPulse home">
+            <img class="college-logo" src="https://www.cbit.ac.in/wp-content/uploads/2023/09/CBIT-LOGO.png" alt="Chaitanya Bharathi Institute of Technology logo" loading="eager">
+            <span class="site-brand-copy"><span class="site-brand-name">PlacementPulse</span><span class="site-brand-caption">CBIT · HYDERABAD</span></span>
+        </a>
+        <div class="search-shell" role="search">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.7"></circle><path d="m16 16 4.3 4.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
+            <label class="sr-only" for="globalSearch">Search companies, students, departments, or roles</label>
+            <input id="globalSearch" class="search-input" type="search" placeholder="Search students, companies, departments..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="searchResults">
+            <span class="search-hint">ESC</span>
+            <div id="searchPills" class="intent-pills" role="status" aria-live="polite"></div>
+            <div id="searchResults" class="search-dropdown" role="listbox" aria-label="Placement search results" aria-live="polite"></div>
+        </div>
+        <button id="menuTrigger" class="menu-trigger" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="navigationDrawer" title="Open navigation">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
+            <span>Explore</span>
+        </button>
+    </header>
+
+    <button id="drawerBackdrop" class="drawer-backdrop" type="button" aria-label="Close navigation menu" tabindex="-1"></button>
+    <aside id="navigationDrawer" class="navigation-drawer p-5 sm:p-6" role="dialog" aria-modal="true" aria-label="Main navigation" aria-hidden="true" inert="" tabindex="-1">
+        <div class="flex items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div><p class="section-kicker">PlacementPulse</p><h2 class="mt-1 text-lg font-extrabold text-white">Explore your next move</h2></div>
+            <button id="closeNavigation" class="chart-expand h-11 w-11 text-xl" type="button" aria-label="Close navigation menu"><span aria-hidden="true">×</span></button>
+        </div>
+        <p class="drawer-section-label">Dashboard</p>
+        <nav class="mt-2 grid gap-1" aria-label="Dashboard sections">
+            <a class="drawer-link" href="#top" data-nav-view="dashboard" aria-current="page"><span class="drawer-link-number">01</span><span class="drawer-copy"><strong class="drawer-heading">Placement overview</strong><span>Analytics, years and student records</span></span></a>
+            <a class="drawer-link" href="#companies-title" data-nav-scroll="companies-title"><span class="drawer-link-number">02</span><span class="drawer-copy"><strong class="drawer-heading">Recruiters</strong><span>Companies hiring across cohorts</span></span></a>
+            <a class="drawer-link" href="#roadmap-title" data-nav-scroll="roadmap-title"><span class="drawer-link-number">03</span><span class="drawer-copy"><strong class="drawer-heading">Preparation roadmap</strong><span>Track your weekly progress</span></span></a>
+        </nav>
+        <p class="drawer-section-label">Student stories</p>
+        <nav class="mt-2 grid gap-1" aria-label="Student stories">
+            <a class="drawer-link" href="#beyondSpotlight" data-nav-view="beyondSpotlight"><span class="drawer-link-number" aria-hidden="true">04</span><span class="drawer-copy"><strong class="drawer-heading">Beyond Placements Spotlight</strong><span>CBIT alumni with paths beyond campus hiring</span></span></a>
+        </nav>
+        <div class="mt-6 rounded-xl border border-slate-800 bg-slate-900/55 p-4">
+            <p class="text-xs font-semibold text-slate-200">About these profiles</p>
+            <p class="mt-2 text-xs leading-5 text-slate-400">Each profile links to a public source so you can learn more about the person and their work.</p>
+        </div>
+    </aside>
+
+    <main id="top" class="shell pb-12" data-main-view="dashboard">
+        <section class="grid items-center gap-5 py-7 lg:grid-cols-[minmax(0,1fr)_minmax(340px,.78fr)] lg:py-9">
+            <div>
+                <p class="section-kicker">CBIT · Hyderabad</p>
+                <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">From campus to career.<br><span class="text-[#c5d2c4]">See the full picture.</span></h1>
+                <p class="mt-3 max-w-xl text-sm leading-6 text-slate-400">See placements year by year. Explore employers, departments and student records—all in one place.</p>
+            </div>
+            <div class="hero-photo" aria-label="Chaitanya Bharathi Institute of Technology campus">
+                <img src="https://www.cbit.ac.in/wp-content/uploads/2019/01/ABOUT-TAB-1.jpeg" alt="Chaitanya Bharathi Institute of Technology campus" loading="lazy">
+                <div class="hero-photo-copy"><span class="block text-[10px] font-bold uppercase tracking-[.2em] text-white/70">Campus to career</span><span class="mt-1 block text-lg font-semibold text-white">A clearer view of what’s next</span></div>
+            </div>
+        </section>
+
+        <section class="branch-browser mb-6" aria-labelledby="branchBrowserTitle">
+            <div class="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <div><p class="section-kicker">Explore the college</p><h2 id="branchBrowserTitle" class="mt-1 text-sm font-bold text-slate-100">Browse departments</h2></div>
+                <span class="text-[10px] text-slate-500">Choose a department to narrow the placement records</span>
+            </div>
+            <div id="branchChips" class="flex flex-wrap gap-2" aria-label="All departments"></div>
+        </section>
+
+        <section class="filter-bar sticky top-0 z-20 -mx-2 mb-7 rounded-xl border border-slate-700/80 bg-[#0d151e]/95 p-3 shadow-xl shadow-black/20 backdrop-blur-md" aria-label="Dashboard filters">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="mr-1 pl-1 text-[10px] font-extrabold tracking-[1px] text-slate-500">SHOW</span>
+                <label class="sr-only" for="yearFilter">Year</label><select id="yearFilter" class="filter-select text-xs"><option value="all">All academic years</option></select>
+                <label class="sr-only" for="departmentFilter">Department</label><select id="departmentFilter" class="filter-select text-xs"><option value="all">All departments</option></select>
+                <label class="sr-only" for="companyFilter">Company</label><select id="companyFilter" class="filter-select text-xs"><option value="all">All companies</option></select>
+                <button id="resetFilters" class="filter-reset ml-auto rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 transition hover:bg-slate-800 hover:text-white" type="button">Clear filters</button>
+            </div>
+        </section>
+
+        <section class="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Placement summary">
+            <div class="col-span-full mb-1">
+                <p class="section-kicker">The latest year</p>
+                <h2 class="mt-1 text-lg font-bold tracking-tight text-white">Placement snapshot</h2>
+                <p class="mt-1 text-xs leading-5 text-slate-400">A quick look at placements, student records and employers.</p>
+            </div>
+            <article class="panel p-4 sm:p-5"><p id="placedLabel" class="text-xs text-slate-400">Students placed · Latest year · 2025-26</p><div class="mt-3"><button id="placedPdfLink" class="cohort-placed-button text-left" type="button" aria-label="Show placement records for 2025-26"><strong id="placedValue" class="text-2xl font-bold text-white">723</strong></button></div><p id="cohortValue" class="mt-1 text-[10px] text-slate-500">723 of 877 eligible students</p></article>
+            <article class="panel p-4 sm:p-5"><p class="text-xs text-slate-400">Placement rate</p><div class="mt-3"><strong id="rateValue" class="text-2xl font-bold text-white">82%</strong></div><p id="rateDetail" class="mt-1 text-[10px] text-slate-500">2025-26 placement rate</p></article>
+            <article class="panel p-4 sm:p-5"><p class="text-xs text-slate-400">Student records</p><div class="mt-3"><strong id="recordsValue" class="text-2xl font-bold text-white">7,898</strong></div><p id="recordsRange" class="mt-1 text-[10px] text-slate-500">From 2015-16 up to 2025-26</p></article>
+            <article class="panel p-4 sm:p-5"><p id="companiesLabel" class="text-xs text-slate-400">Employers in placement records</p><div class="mt-3"><strong id="companiesValue" class="text-2xl font-bold text-white">—</strong></div><p id="companiesRange" class="mt-1 text-[10px] leading-4 text-slate-500">Employers linked to placed students</p></article>
+        </section>
+
+        <section class="mb-10" aria-labelledby="analytics-title">
+            <div class="mb-5 flex items-end justify-between gap-4"><div><p class="section-kicker">Outcomes at a glance</p><h2 id="analytics-title" class="mt-1 text-2xl font-bold tracking-tight text-white">Placement analytics</h2><p class="mt-2 max-w-2xl text-xs leading-5 text-slate-400">Track placements by year, compare departments and see which employers appear most often.</p></div></div>
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <article class="panel p-4 sm:p-5"><div class="mb-4 flex items-start justify-between gap-3"><div><h3 class="text-sm font-semibold text-slate-100">Registered students vs. placed</h3><p class="mt-1 text-xs text-slate-500">Choose a year to open its placement list</p></div><div class="flex items-center gap-2"><button class="chart-expand" type="button" data-expand-chart="cohortChart" aria-label="Expand student placement chart" title="Expand chart"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div></div><div class="chart-wrap"><canvas id="cohortChart" aria-label="Students registered and placed by year" width="566" height="260" style="display: block; box-sizing: border-box; height: 260px; width: 566px;"></canvas></div></article>
+                <article class="panel p-4 sm:p-5"><div class="mb-4 flex items-start justify-between gap-3"><div><h3 class="text-sm font-semibold text-slate-100">Placement records by department</h3><p class="mt-1 text-xs text-slate-500">Select a bar to filter the student list</p></div><div class="flex items-center gap-2"><span id="departmentChartYear" class="rounded-md border border-slate-700 px-2 py-1 text-[10px] text-slate-400">From 2015-16 to 2025-26</span><button class="chart-expand" type="button" data-expand-chart="departmentChart" aria-label="Expand department chart" title="Expand chart"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div></div><div class="chart-wrap"><canvas id="departmentChart" aria-label="Student placements by department" width="566" height="260" style="display: block; box-sizing: border-box; height: 260px; width: 566px;"></canvas></div></article>
+                <article class="panel p-4 sm:p-5 lg:col-span-2"><div class="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h3 class="text-sm font-semibold text-slate-100">Employers named most often</h3><p class="mt-1 text-xs text-slate-500">Select a segment to view its student records</p></div><div class="flex items-center gap-2"><span id="offerCountLabel" class="text-[10px] font-semibold tracking-wide text-slate-500">7,898 PLACEMENT ROWS</span><button class="chart-expand" type="button" data-expand-chart="companyChart" aria-label="Expand company placements chart" title="Expand chart"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button></div></div><div class="grid items-center gap-4 md:grid-cols-[minmax(0,1fr)_220px_minmax(0,1fr)]"><div id="companyLegendLeft" class="hidden justify-self-end space-y-4 text-right md:block"></div><div class="mx-auto h-[230px] w-full max-w-[270px]"><canvas id="companyChart" aria-label="Placement totals by leading company" width="220" height="230" style="display: block; box-sizing: border-box; height: 230px; width: 220px;"></canvas></div><div id="companyLegendRight" class="space-y-4"></div></div></article>
+            </div>
+        </section>
+
+        <dialog id="chartDialog" class="chart-dialog" aria-labelledby="chartDialogTitle">
+            <div class="flex h-full flex-col">
+                <div class="mb-4 flex items-center justify-between gap-3"><div><p class="section-kicker">Expanded visualization</p><h2 id="chartDialogTitle" class="mt-1 text-lg font-semibold text-white">Chart details</h2></div><button id="closeChartDialog" class="chart-expand" type="button" aria-label="Close expanded chart" title="Close"><span aria-hidden="true">×</span></button></div>
+                <div class="chart-wrap min-h-0 flex-1"><canvas id="expandedChart" aria-label="Expanded placement chart"></canvas></div>
+            </div>
+        </dialog>
+
+        <section class="mb-10" aria-labelledby="historical-title">
+            <div class="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800/80 pb-5">
+                <div class="max-w-3xl">
+                    <p class="section-kicker">Historical placement record</p>
+                    <h2 id="historical-title" class="mt-2 text-2xl font-extrabold tracking-tight text-white sm:text-3xl">Placement outcomes, year by year</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-400">Compare placements and success rates across 11 years. Package details appear only when listed; company counts show employers linked to student placements.</p>
+                </div>
+                <span id="yearRangeBadge" class="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-2 text-[10px] font-semibold tracking-wide text-slate-300">2015-16 — 2025-26</span>
+            </div>
+            <div id="historicalCohortRows" class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></div>
+        </section>
+
+        <section class="panel mb-10 overflow-hidden" aria-labelledby="employerHistoryTitle">
+            <div class="border-b border-slate-800/80 p-5 sm:p-6">
+                <p class="section-kicker">Employer activity · by cohort</p>
+                <h2 id="employerHistoryTitle" class="mt-1 text-xl font-bold tracking-tight text-white">Employers by year</h2>
+                <p class="mt-2 max-w-3xl text-xs leading-5 text-slate-400">See how many different employers are named in student records each year. This is not a count of campus visits.</p>
+                <div class="mt-4 hidden grid-cols-[minmax(78px,.7fr)_minmax(120px,1.4fr)_minmax(130px,2fr)_minmax(105px,1fr)] gap-3 px-4 text-[9px] font-bold uppercase tracking-[.12em] text-slate-500 sm:grid"><span>Academic year</span><span>Companies in list</span><span>Example employers</span><span>Placement cohort</span></div>
+            </div>
+            <div id="employerHistoryRows" class="grid gap-2 p-4 sm:p-5" aria-live="polite"></div>
+            <p class="border-t border-slate-800/80 px-5 py-3 text-[10px] leading-5 text-slate-500">Each employer is counted once per year. This does not show how many times companies visited campus.</p>
+        </section>
+
+        <section class="panel mb-10 overflow-hidden" aria-labelledby="branchIntakeTitle">
+            <div class="border-b border-slate-800 p-5 sm:p-6">
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    <div><p class="section-kicker">Admissions · approved seats</p><h2 id="branchIntakeTitle" class="mt-1 text-xl font-bold text-white">Undergraduate seats by programme</h2><p class="mt-1 text-xs font-medium text-[#c4d2c7]">2024-25</p><p class="mt-2 max-w-3xl text-xs leading-5 text-slate-400">Approved seats in each programme. Seat numbers are not placement totals or current student numbers.</p></div>
+                    <span class="rounded-full border border-[#91aab0]/25 bg-[#91aab0]/10 px-3 py-2 text-xs font-semibold text-[#d2ded8]">1,680 seats · 12 programs</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 gap-px bg-slate-800/80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Civil Engineering</span><strong class="mono text-sm text-white">120</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Mechanical Engineering</span><strong class="mono text-sm text-white">120</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Electronics &amp; Communications Engineering</span><strong class="mono text-sm text-white">180</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Computer Science &amp; Engineering</span><strong class="mono text-sm text-white">360</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Electrical &amp; Electronics</span><strong class="mono text-sm text-white">120</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Information Technology</span><strong class="mono text-sm text-white">180</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Chemical Engineering</span><strong class="mono text-sm text-white">60</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Biotechnology</span><strong class="mono text-sm text-white">120</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Artificial Intelligence &amp; Data Science</span><strong class="mono text-sm text-white">120</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">CSE (Artificial Intelligence &amp; Machine Learning)</span><strong class="mono text-sm text-white">180</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">CSE (IoT &amp; Cyber Security incl. Blockchain)</span><strong class="mono text-sm text-white">60</strong></div>
+                <div class="flex items-center justify-between gap-3 bg-[#171e20] px-5 py-4"><span class="text-xs text-slate-300">Electronics Engineering (VLSI Design &amp; Technology)</span><strong class="mono text-sm text-white">60</strong></div>
+            </div>
+            <div class="flex flex-col gap-2 p-5 sm:p-6">
+                <p class="text-[11px] leading-5 text-slate-400"><strong class="text-slate-200">About these numbers:</strong> Branch seat counts are available for 2024-25 only. Earlier years and 2025-26 are not shown because no figures are listed for them.</p>
+                <div class="flex flex-wrap gap-2" aria-label="Published intake figures by academic year">
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2015-16 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2016-17 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2017-18 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2018-19 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2019-20 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2020-21 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2021-22 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2022-23 · not listed</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2023-24 · not listed</span>
+                    <span class="rounded-md border border-[#91aab0]/30 bg-[#91aab0]/10 px-2 py-1 text-[9px] text-[#d2ded8]">2024-25 · available</span>
+                    <span class="rounded-md border border-slate-800 px-2 py-1 text-[9px] text-slate-500">2025-26 · not listed</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-10" aria-labelledby="companies-title">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p class="section-kicker">Employer activity</p><h2 id="companies-title" class="mt-1 text-xl font-bold text-white">Employers with student placements</h2><p class="mt-1 max-w-2xl text-xs leading-5 text-slate-400">See which employers appear most often. These totals do not count campus visits.</p></div></div>
+            <div id="companyCards" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+            <p id="companyEmpty" class="empty-state panel mt-3 p-5 text-center text-sm text-slate-400" style="display: none;">Recruiter data is not available.</p>
+        </section>
+
+        <section class="mb-10" aria-labelledby="roadmap-title">
+            <div class="mb-4"><p class="section-kicker">Build your interview readiness</p><h2 id="roadmap-title" class="mt-1 text-xl font-bold text-white">Preparation roadmap</h2><p class="mt-1 max-w-2xl text-xs leading-5 text-slate-400">Work through practical DSA and core CS topics, then track your progress as you go.</p></div>
+            <div class="panel grid overflow-hidden lg:grid-cols-[minmax(0,1fr)_280px]">
+                <div class="p-5 sm:p-6">
+                    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-4" role="tablist" aria-label="Roadmap topics"><button id="tab-dsa" class="roadmap-tab rounded-lg bg-lime-300 px-3 py-2 text-xs font-bold text-slate-950" type="button" role="tab" aria-selected="true" aria-controls="tasks-dsa">Data Structures &amp; Algorithms</button><button id="tab-core" class="roadmap-tab rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-white" type="button" role="tab" aria-selected="false" aria-controls="tasks-core">Core CS Fundamentals</button></div>
+                    <div id="tasks-dsa" class="task-list mt-4 space-y-1" role="tabpanel" aria-labelledby="tab-dsa">
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="arrays"><span class="flex-1 text-sm text-slate-200">Arrays, strings &amp; hashing</span><span class="text-[10px] text-slate-500">12 problems</span></label>
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="trees"><span class="flex-1 text-sm text-slate-200">Trees, graphs &amp; traversal</span><span class="text-[10px] text-slate-500">16 problems</span></label>
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="dp"><span class="flex-1 text-sm text-slate-200">Dynamic programming patterns</span><span class="text-[10px] text-slate-500">10 problems</span></label>
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="complexity"><span class="flex-1 text-sm text-slate-200">Complexity analysis &amp; sorting</span><span class="text-[10px] text-slate-500">8 problems</span></label>
+                    </div>
+                    <div id="tasks-core" class="task-list mt-4 hidden space-y-1" role="tabpanel" aria-labelledby="tab-core" hidden="">
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="dbms"><span class="flex-1 text-sm text-slate-200">DBMS, normalization &amp; SQL</span><span class="text-[10px] text-slate-500">9 topics</span></label>
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="os"><span class="flex-1 text-sm text-slate-200">Operating systems &amp; concurrency</span><span class="text-[10px] text-slate-500">8 topics</span></label>
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="networks"><span class="flex-1 text-sm text-slate-200">Computer networks &amp; HTTP</span><span class="text-[10px] text-slate-500">7 topics</span></label>
+                        <label class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 hover:bg-slate-900/80"><input class="task-check" type="checkbox" data-task="oop"><span class="flex-1 text-sm text-slate-200">OOP principles &amp; design basics</span><span class="text-[10px] text-slate-500">6 topics</span></label>
+                    </div>
+                </div>
+                <aside class="flex flex-col justify-between border-t border-slate-800 bg-[#0d151e] p-5 sm:p-6 lg:border-l lg:border-t-0"><div><p class="section-kicker">Your preparation</p><div class="mt-3 flex items-baseline gap-2"><strong id="progressPercent" class="text-4xl font-bold text-white">0%</strong><span class="text-xs text-slate-500">completed</span></div><div class="progress-track mt-4" role="progressbar" aria-label="Preparation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progressFill" class="progress-fill" style="width: 0%;"></div></div><p id="progressCount" class="mt-3 text-xs text-slate-400">0 of 8 milestones complete</p></div><p class="mt-6 text-[11px] leading-5 text-slate-500">Your checklist is saved in this browser and will be here when you return.</p></aside>
+            </div>
+        </section>
+
+        <section aria-labelledby="submissions-title">
+            <div class="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p class="section-kicker">Student records</p><h2 id="submissions-title" class="mt-1 text-xl font-bold text-white">Student placement records</h2><p class="mt-1 max-w-2xl text-xs leading-5 text-slate-400">Filter by year, department or employer. Package details are shown when available.</p><p id="resultCount" class="mt-2 text-xs text-slate-500">Showing 25 of 7,898 placement records</p></div></div>
+            <div class="desktop-records panel table-scroll"><table class="record-table"><thead><tr><th>Student / record</th><th>Department</th><th>Company</th><th>CTC (LPA)</th><th>Academic year</th></tr></thead><tbody id="recordsBody"></tbody></table></div>
+            <div id="recordsCards" class="grid gap-3 md:hidden"></div>
+            <div id="recordsEmpty" class="empty-state panel p-8 text-center text-sm text-slate-400" style="display: none;">No placement records match these filters.</div>
+            <div class="mt-3 flex items-center justify-center gap-3"><button id="previousPage" class="rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-300 disabled:cursor-not-allowed disabled:opacity-40" type="button" disabled="">Previous</button><span id="pageStatus" class="mono text-[10px] text-slate-500">Page 1 of 316</span><button id="nextPage" class="rounded-md border border-slate-700 px-3 py-2 text-xs text-slate-300 disabled:cursor-not-allowed disabled:opacity-40" type="button">Next</button></div>
+        </section>
+        <footer class="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4 text-[10px] text-slate-500">
+            <span>PlacementPulse · Chaitanya Bharathi Institute of Technology, Hyderabad</span>
+            <span id="footerDataStatus" class="footer-data-status" role="status" aria-live="polite">7,898 placement records loaded</span>
+            <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span>Data sources:</span>
+                <a class="underline decoration-slate-700 underline-offset-4 hover:text-slate-300" href="https://cbit.ac.in/placement_post/year-wise-placements-2021/" target="_blank" rel="noopener noreferrer">CBIT year-wise placement records</a>
+                <a class="underline decoration-slate-700 underline-offset-4 hover:text-slate-300" href="https://www.cbit.ac.in/admission_post/ug-pg-course-list/" target="_blank" rel="noopener noreferrer" aria-label="Open CBIT's official programme intake page">CBIT programme intake</a>
+            </span>
+            <span class="w-full border-t border-slate-800/80 pt-3 text-center text-[11px] font-medium tracking-wide text-slate-400">by Ashok</span>
+        </footer>
+    </main>
+
+    <main id="beyondSpotlight" class="shell hidden pb-16 pt-8" data-main-view="beyondSpotlight" tabindex="-1" aria-labelledby="spotlight-title" aria-hidden="true" inert="">
+        <section class="mb-7 border-b border-slate-800 pb-6 sm:pb-8">
+            <p class="section-kicker">Career paths beyond campus hiring</p>
+            <h1 id="spotlight-title" class="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Beyond placements</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-300">Meet people linked to CBIT who have made their mark in film, business and public life. Open a source link to learn more.</p>
+            <p class="mt-3 max-w-3xl text-xs leading-5 text-slate-500">Education and career details come from the public biographies, interviews and news stories linked on each profile.</p>
+        </section>
+        <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" aria-label="Published profiles and career stories linked to CBIT">
+            <article class="story-card spotlight-card p-5 sm:p-6">
+                <div class="relative">
+                    <span class="rounded-full border border-[#b9a98c]/30 bg-[#b9a98c]/10 px-2.5 py-1 text-[11px] font-semibold text-[#d7c9ae]">Film · direction</span>
+                    <h2 class="mt-4 text-xl font-bold text-white">Sekhar Kammula</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">Public biographies link Kammula’s mechanical engineering studies to CBIT. He went on to make award-winning Telugu films, including <em>Dollar Dreams</em>, <em>Happy Days</em> and <em>Fidaa</em>.</p>
+                    <div class="milestone-line mt-5 text-sm">
+                        <div class="milestone"><strong class="text-slate-200">CBIT</strong><p class="mt-1 text-slate-400">Mechanical Engineering</p></div>
+                        <div class="milestone"><strong class="text-slate-200">United States</strong><p class="mt-1 text-slate-400">Further study in computer science and film</p></div>
+                        <div class="milestone"><strong class="text-slate-200">Filmmaking</strong><p class="mt-1 text-slate-400"><em>Dollar Dreams</em> won the National Film Award for Best First Film</p></div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+                        <a class="inline-flex min-h-11 items-center text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://en.wikipedia.org/wiki/Sekhar_Kammula" target="_blank" rel="noopener noreferrer">Education and film profile ↗</a>
+                        <a class="inline-flex min-h-11 items-center text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://www.idlebrain.com/celeb/interview/inter_sekharkammula.html" target="_blank" rel="noopener noreferrer">Filmmaking interview ↗</a>
+                    </div>
+                </div>
+            </article>
+            <article class="story-card spotlight-card p-5 sm:p-6">
+                <div class="relative">
+                    <span class="rounded-full border border-[#91aab0]/30 bg-[#91aab0]/10 px-2.5 py-1 text-[11px] font-semibold text-[#c3d4d5]">Film · acting and direction</span>
+                    <h2 class="mt-4 text-xl font-bold text-white">J. D. Chakravarthy</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">A public biography lists Chakravarthy as a CBIT engineering graduate. He built a career as an actor and filmmaker across Telugu, Hindi and other Indian-language cinema.</p>
+                    <div class="milestone-line mt-5 text-sm">
+                        <div class="milestone"><strong class="text-slate-200">CBIT</strong><p class="mt-1 text-slate-400">Completed a Bachelor of Engineering</p></div>
+                        <div class="milestone"><strong class="text-slate-200">1989</strong><p class="mt-1 text-slate-400">Made his screen debut in <em>Siva</em></p></div>
+                        <div class="milestone"><strong class="text-slate-200">2023</strong><p class="mt-1 text-slate-400">Won Best Supporting Actor at the Eko International Film Festival</p></div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+                        <a class="inline-flex min-h-11 items-center text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://en.wikipedia.org/wiki/J._D._Chakravarthy" target="_blank" rel="noopener noreferrer">Education and film profile ↗</a>
+                        <a class="inline-flex min-h-11 items-center text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://timesofindia.indiatimes.com/entertainment/telugu/movies/news/indian-actors-tannishta-chatterjee-and-jd-chakravarthi-shine-at-eko-international-film-festival/articleshow/99951694.cms" target="_blank" rel="noopener noreferrer">Award story ↗</a>
+                    </div>
+                </div>
+            </article>
+            <article class="story-card spotlight-card p-5 sm:p-6">
+                <div class="relative">
+                    <span class="rounded-full border border-[#b9a98c]/30 bg-[#b9a98c]/10 px-2.5 py-1 text-[11px] font-semibold text-[#d7c9ae]">Business · public service</span>
+                    <h2 class="mt-4 text-xl font-bold text-white">Y. S. Chowdary</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">His biography records a Mechanical Engineering degree from CBIT and the start of his business career after postgraduate study.</p>
+                    <div class="milestone-line mt-5 text-sm">
+                        <div class="milestone"><strong class="text-slate-200">1980–84</strong><p class="mt-1 text-slate-400">Mechanical Engineering at CBIT</p></div>
+                        <div class="milestone"><strong class="text-slate-200">1986</strong><p class="mt-1 text-slate-400">Started a home-appliances business</p></div>
+                        <div class="milestone"><strong class="text-slate-200">2010</strong><p class="mt-1 text-slate-400">Joined the Rajya Sabha</p></div>
+                    </div>
+                    <a class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://www.yschowdary.com/about/" target="_blank" rel="noopener noreferrer">Read his biography ↗</a>
+                </div>
+            </article>
+            <article class="story-card spotlight-card p-5 sm:p-6">
+                <div class="relative">
+                    <span class="rounded-full border border-[#b9a98c]/30 bg-[#b9a98c]/10 px-2.5 py-1 text-[11px] font-semibold text-[#d7c9ae]">Film · direction</span>
+                    <h2 class="mt-4 text-xl font-bold text-white">Neeraj Ghaywan</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">Listed among CBIT alumni, Ghaywan moved into filmmaking. His debut feature <em>Masaan</em> premiered at Cannes and won the FIPRESCI and Prix de l’Avenir awards.</p>
+                    <div class="milestone-line mt-5 text-sm">
+                        <div class="milestone"><strong class="text-slate-200">CBIT</strong><p class="mt-1 text-slate-400">Engineering studies</p></div>
+                        <div class="milestone"><strong class="text-slate-200">Film direction</strong><p class="mt-1 text-slate-400">Made his feature debut with <em>Masaan</em></p></div>
+                        <div class="milestone"><strong class="text-slate-200">Cannes</strong><p class="mt-1 text-slate-400">Two awards for <em>Masaan</em></p></div>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
+                        <a class="inline-flex min-h-11 items-center text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://en.wikipedia.org/wiki/Chaitanya_Bharathi_Institute_of_Technology#Notable_alumni" target="_blank" rel="noopener noreferrer">CBIT alumni reference ↗</a>
+                        <a class="inline-flex min-h-11 items-center text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="https://www.indiatoday.in/movies/bollywood/story/can-t-believe-i-lived-this-moment-director-neeraj-ghaywan-recalls-masaan-premiere-at-cannes-1679933-2020-05-20" target="_blank" rel="noopener noreferrer">Masaan at Cannes ↗</a>
+                    </div>
+                </div>
+            </article>
+            <article class="story-card spotlight-card p-5 sm:p-6">
+                <div class="relative">
+                    <span class="rounded-full border border-[#b9a98c]/30 bg-[#b9a98c]/10 px-2.5 py-1 text-[11px] font-semibold text-[#d7c9ae]">Film · acting</span>
+                    <h2 class="mt-4 text-xl font-bold text-white">Ravi Varma</h2>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">Varma describes studying engineering at CBIT, working in the US and then training in acting before his Telugu film debut.</p>
+                    <div class="milestone-line mt-5 text-sm">
+                        <div class="milestone"><strong class="text-slate-200">CBIT</strong><p class="mt-1 text-slate-400">Engineering degree</p></div>
+                        <div class="milestone"><strong class="text-slate-200">United States</strong><p class="mt-1 text-slate-400">Computer science master’s and Rediff work</p></div>
+                        <div class="milestone"><strong class="text-slate-200">Acting</strong><p class="mt-1 text-slate-400">NYFA course; recognised for <em>Vennela</em></p></div>
+                    </div>
+                    <a class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[#d7c9ae] underline decoration-[#b9a98c]/50 underline-offset-4 hover:text-white" href="http://www.idlebrain.com/news/2000march20/chitchat-ravivarma.html" target="_blank" rel="noopener noreferrer">Read the interview ↗</a>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <button id="assistantLauncher" class="assistant-launcher" type="button" aria-label="Open PlacementPulse interview assistant" aria-expanded="false" aria-controls="assistantPanel" title="Interview prep assistant"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5.75A2.75 2.75 0 0 1 7.75 3h8.5A2.75 2.75 0 0 1 19 5.75v6.5A2.75 2.75 0 0 1 16.25 15H11l-4.5 4v-4.2A2.75 2.75 0 0 1 5 12.25v-6.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M9 8.5h6M9 11.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg></button>
+    <aside id="assistantPanel" class="assistant-panel" role="dialog" aria-modal="false" aria-labelledby="assistantTitle" aria-hidden="true">
+        <header class="flex items-center justify-between gap-3 border-b border-slate-700/80 px-4 py-3"><div class="flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-lg border border-slate-600 bg-slate-800 text-sm text-slate-100">P</span><div><h2 id="assistantTitle" class="text-sm font-semibold text-white">Placement assistant</h2><p class="mt-0.5 text-[10px] text-slate-400">Placement help · this session</p></div></div><button id="closeAssistant" class="chart-expand" type="button" aria-label="Close interview assistant"><span aria-hidden="true">×</span></button></header>
+        <div id="assistantLog" class="assistant-log" role="log" aria-live="polite"><div class="chat-message"><p>Ask about recruiters, package highlights, placement years, or interview preparation.</p><p class="mt-2 text-[10px] text-slate-400">Interview histories are not included in the available placement records.</p></div></div>
+        <div id="assistantShortcuts" class="flex gap-2 overflow-x-auto border-t border-slate-800 px-3 py-3"><button class="chat-shortcut" type="button" data-chat-prompt="What does Microsoft ask in campus rounds?">Microsoft campus rounds</button><button class="chat-shortcut" type="button" data-chat-prompt="Summarize highest paying branches">Package highlights</button><button class="chat-shortcut" type="button" data-chat-prompt="Give me a 30-day DSA plan">30-day DSA plan</button></div>
+        <form id="assistantForm" class="flex items-center gap-2 border-t border-slate-700/80 p-3"><label class="sr-only" for="assistantInput">Ask the placement assistant</label><input id="assistantInput" class="search-input min-w-0 flex-1" type="text" placeholder="Ask about placements or interview prep..." autocomplete="off"><button class="rounded-md border border-slate-500 bg-slate-200 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-white" type="submit">Send</button></form>
+    </aside>
+
+    <script>
+        const recordsBody = document.getElementById("recordsBody");
+        const yearFilter = document.getElementById("yearFilter");
+        const departmentFilter = document.getElementById("departmentFilter");
+        const apiBase = (() => {
+            const override = new URLSearchParams(location.search).get("apiBase");
+            if (override) return override.replace(/\/$/, "");
+            const localHosts = ["localhost", "127.0.0.1", "::1"];
+            const localPreview = localHosts.includes(location.hostname) && location.port && location.port !== "5000";
+            return location.protocol === "file:" || localPreview ? "http://127.0.0.1:5000/api" : `${location.origin}/api`;
+        })();
+        const pageSize = 25;
+        const searchTarget = { company: null, studentId: null };
+        const sourceUrl = "https://cbit.ac.in/placement_post/year-wise-placements-2021/";
+        const officialCohorts = [
+            { academic_year: "2015-16", students: 927, placed: 676, placement_rate: 73, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2015-16-NIRF-Placed-Students.pdf" },
+            { academic_year: "2016-17", students: 949, placed: 718, placement_rate: 75, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2016-17-NIRF-Placed-Students.pdf" },
+            { academic_year: "2017-18", students: 936, placed: 610, placement_rate: 66, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2017-18-NIRF-Placed-Students.pdf" },
+            { academic_year: "2018-19", students: 905, placed: 734, placement_rate: 81, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2018-19-NIRF-Placed-Students.pdf" },
+            { academic_year: "2019-20", students: 919, placed: 754, placement_rate: 82, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2019-20-NIRFPlaced-Students.pdf" },
+            { academic_year: "2020-21", students: 952, placed: 744, placement_rate: 78, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2020-21-NIRF-Placed-Students.pdf" },
+            { academic_year: "2021-22", students: 884, placed: 722, placement_rate: 82, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2021-22-NIRF-Placed-Students.pdf" },
+            { academic_year: "2022-23", students: 930, placed: 718, placement_rate: 77, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2022-23-NIRF-Placed-Students.pdf" },
+            { academic_year: "2023-24", students: 954, placed: 720, placement_rate: 76, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2023-24-NIRF-Placed-Students.pdf" },
+            { academic_year: "2024-25", students: 950, placed: 779, placement_rate: 82, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/04/2024-25-NIRF-Placed-Students.pdf" },
+            { academic_year: "2025-26", students: 877, placed: 723, placement_rate: 82, pdfUrl: "https://www.cbit.ac.in/wp-content/uploads/2026/09/2025-26-UG-Placed-Students-18.09.2026.pdf" }
+        ];
+        const palette = ["#91aab0", "#b9a98c", "#aebcae", "#8f9997", "#9c8f84", "#738d89", "#c2b5a2"];
+        const chartFont = { family: "DM Sans, sans-serif" };
+        const axisStyle = { color: "#9aa4a4", font: { ...chartFont, size: 10 }, grid: { color: "rgba(154, 164, 164, .13)" }, border: { display: false } };
+        let records = [];
+        let yearSummaries = [];
+        let placementFuse = null;
+        let currentPage = 1;
+        let activeIntent = {};
+
+        const navigationDrawer = document.getElementById("navigationDrawer");
+        const drawerBackdrop = document.getElementById("drawerBackdrop");
+        const menuTrigger = document.getElementById("menuTrigger");
+        const siteHeader = document.getElementById("siteHeader");
+        const drawerAssistantLauncher = document.getElementById("assistantLauncher");
+        const mainViews = [...document.querySelectorAll("[data-main-view]")];
+        let drawerReturnFocus = null;
+        let drawerScrollY = 0;
+        let bodyScrollStyles = null;
+        function closeNavigationDrawer({ restoreFocus = true, restoreScroll = true } = {}) {
+            const wasOpen = navigationDrawer.classList.contains("is-open");
+            navigationDrawer.classList.remove("is-open");
+            drawerBackdrop.classList.remove("is-open");
+            navigationDrawer.setAttribute("aria-hidden", "true");
+            navigationDrawer.setAttribute("aria-modal", "false");
+            navigationDrawer.inert = true;
+            menuTrigger.setAttribute("aria-expanded", "false");
+            menuTrigger.inert = false;
+            document.body.classList.remove("drawer-open");
+            siteHeader.inert = false;
+            drawerAssistantLauncher.inert = false;
+            mainViews.forEach(view => { view.inert = view.classList.contains("hidden"); });
+            if (!wasOpen) return;
+            if (bodyScrollStyles) {
+                document.body.style.position = bodyScrollStyles.position;
+                document.body.style.top = bodyScrollStyles.top;
+                document.body.style.width = bodyScrollStyles.width;
+                bodyScrollStyles = null;
+            }
+            if (restoreScroll) {
+                const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+                document.documentElement.style.scrollBehavior = "auto";
+                window.scrollTo(0, drawerScrollY);
+                requestAnimationFrame(() => { document.documentElement.style.scrollBehavior = previousScrollBehavior; });
+            }
+            if (restoreFocus && drawerReturnFocus instanceof HTMLElement && drawerReturnFocus.isConnected) {
+                drawerReturnFocus.focus({ preventScroll: true });
+            }
+        }
+        function openNavigationDrawer() {
+            if (navigationDrawer.classList.contains("is-open")) return;
+            if (document.getElementById("assistantPanel").classList.contains("is-open")) {
+                document.getElementById("closeAssistant").click();
+            }
+            drawerReturnFocus = document.activeElement;
+            drawerScrollY = window.scrollY;
+            bodyScrollStyles = {
+                position: document.body.style.position,
+                top: document.body.style.top,
+                width: document.body.style.width
+            };
+            document.body.style.position = "fixed";
+            document.body.style.top = `-${drawerScrollY}px`;
+            document.body.style.width = "100%";
+            navigationDrawer.inert = false;
+            navigationDrawer.setAttribute("aria-hidden", "false");
+            navigationDrawer.setAttribute("aria-modal", "true");
+            navigationDrawer.classList.add("is-open");
+            drawerBackdrop.classList.add("is-open");
+            menuTrigger.setAttribute("aria-expanded", "true");
+            document.body.classList.add("drawer-open");
+            siteHeader.inert = true;
+            menuTrigger.inert = true;
+            drawerAssistantLauncher.inert = true;
+            mainViews.forEach(view => { view.inert = true; });
+            const focusDrawerClose = () => {
+                if (navigationDrawer.classList.contains("is-open")) document.getElementById("closeNavigation").focus();
+            };
+            window.setTimeout(focusDrawerClose, 50);
+            window.setTimeout(() => {
+                if (navigationDrawer.classList.contains("is-open") && !navigationDrawer.contains(document.activeElement)) focusDrawerClose();
+            }, 320);
+        }
+        function switchMainView(viewName) {
+            const target = mainViews.find(view => view.dataset.mainView === viewName);
+            if (!target) return;
+            mainViews.forEach(view => {
+                const active = view === target;
+                view.classList.toggle("hidden", !active);
+                view.setAttribute("aria-hidden", String(!active));
+                view.inert = !active;
+            });
+            document.querySelectorAll("[data-nav-view]").forEach(link => {
+                if (link.dataset.navView === viewName) link.setAttribute("aria-current", "page");
+                else link.removeAttribute("aria-current");
+            });
+            closeNavigationDrawer({ restoreFocus: false, restoreScroll: false });
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            target.focus({ preventScroll: true });
+        }
+        menuTrigger.addEventListener("click", () => navigationDrawer.classList.contains("is-open") ? closeNavigationDrawer() : openNavigationDrawer());
+        document.getElementById("closeNavigation").addEventListener("click", () => closeNavigationDrawer());
+        drawerBackdrop.addEventListener("click", () => closeNavigationDrawer());
+        document.querySelectorAll("[data-nav-view]").forEach(link => link.addEventListener("click", event => {
+            event.preventDefault();
+            switchMainView(link.dataset.navView);
+        }));
+        document.querySelectorAll("[data-nav-scroll]").forEach(link => link.addEventListener("click", event => {
+            event.preventDefault();
+            switchMainView("dashboard");
+            requestAnimationFrame(() => document.getElementById(link.dataset.navScroll)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+        }));
+        document.addEventListener("keydown", event => {
+            if (!navigationDrawer.classList.contains("is-open")) return;
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeNavigationDrawer();
+                return;
+            }
+            if (event.key === "Tab") {
+                const focusable = [...navigationDrawer.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                    .filter(element => !element.inert && element.getClientRects().length > 0);
+                if (focusable.length === 0) {
+                    event.preventDefault();
+                    navigationDrawer.focus();
+                    return;
+                }
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && (document.activeElement === first || !navigationDrawer.contains(document.activeElement))) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && (document.activeElement === last || !navigationDrawer.contains(document.activeElement))) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            }
+        });
+        document.querySelector('[data-nav-view="dashboard"]').setAttribute("aria-current", "page");
+        const cohortChart = new Chart(document.getElementById("cohortChart"), {
+            type: "bar",
+            data: { labels: [], datasets: [
+                { label: "Eligible students", data: [], backgroundColor: "rgba(145, 170, 176, .72)", borderRadius: 3, maxBarThickness: 24 },
+                { label: "Placed", data: [], backgroundColor: "rgba(185, 169, 140, .86)", borderRadius: 3, maxBarThickness: 24 }
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, onClick: (event, elements, chart) => { if (elements.length) selectAcademicYear(chart.data.labels[elements[0].index]); }, plugins: { legend: { position: "bottom", labels: { color: "#c4cbc7", usePointStyle: true, boxWidth: 7, padding: 16, font: { ...chartFont, size: 10 } } }, tooltip: { backgroundColor: "#20282a", borderColor: "#465050", borderWidth: 1 } }, scales: { x: { ...axisStyle, grid: { display: false } }, y: { ...axisStyle, beginAtZero: true } } }
+        });
+        const departmentChart = new Chart(document.getElementById("departmentChart"), {
+            type: "bar",
+            data: { labels: [], datasets: [{ label: "Student records", data: [], backgroundColor: "#91aab0", borderRadius: 3, borderSkipped: false, maxBarThickness: 21 }] },
+            options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, onClick: (event, elements, chart) => { if (elements.length) selectDepartment(chart.data.labels[elements[0].index]); }, plugins: { legend: { display: false }, tooltip: { backgroundColor: "#20282a", borderColor: "#465050", borderWidth: 1, callbacks: { label: context => ` ${context.parsed.x.toLocaleString()} records` } } }, scales: { x: { ...axisStyle, beginAtZero: true }, y: { ...axisStyle, grid: { display: false }, ticks: { ...axisStyle.ticks, autoSkip: false } } } }
+        });
+        const companyChart = new Chart(document.getElementById("companyChart"), {
+            type: "doughnut",
+            data: { labels: [], datasets: [{ data: [], backgroundColor: palette, borderColor: "#1a2023", borderWidth: 3, hoverOffset: 5 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: "72%", onClick: (event, elements, chart) => { if (elements.length) selectCompany(chart.data.labels[elements[0].index]); }, plugins: { legend: { display: false }, tooltip: { backgroundColor: "#20282a", borderColor: "#465050", borderWidth: 1, callbacks: { label: context => ` ${context.label}: ${context.parsed.toLocaleString()} placements` } } } },
+            plugins: [{ id: "centerText", afterDraw(chart) { const { ctx, chartArea } = chart; if (!chartArea) return; const total = chart.data.datasets[0].data.reduce((sum, value) => sum + value, 0); ctx.save(); ctx.textAlign = "center"; ctx.fillStyle = "#e8ebea"; ctx.font = "600 22px 'Manrope'"; ctx.fillText(total.toLocaleString(), (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2); ctx.fillStyle = "#9aa4a4"; ctx.font = "10px 'DM Sans'"; ctx.fillText("placements", (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2 + 18); ctx.restore(); } }]
+        });
+
+        let expandedChart = null;
+        const chartTitles = { cohortChart: "Yearly placement totals", departmentChart: "Student records by department", companyChart: "Offers by company" };
+        function cloneChartConfig(value) {
+            if (Array.isArray(value)) return value.map(cloneChartConfig);
+            if (value && Object.getPrototypeOf(value) === Object.prototype) {
+                return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneChartConfig(item)]));
+            }
+            return value;
+        }
+        function closeExpandedChart() {
+            const dialog = document.getElementById("chartDialog");
+            if (dialog.open) dialog.close();
+            if (expandedChart) { expandedChart.destroy(); expandedChart = null; }
+        }
+        document.querySelectorAll("[data-expand-chart]").forEach(button => button.addEventListener("click", () => {
+            const sourceChart = Chart.getChart(button.dataset.expandChart);
+            if (!sourceChart) return;
+            closeExpandedChart();
+            document.getElementById("chartDialogTitle").textContent = chartTitles[button.dataset.expandChart] || "Chart details";
+            expandedChart = new Chart(document.getElementById("expandedChart"), {
+                type: sourceChart.config.type,
+                data: cloneChartConfig(sourceChart.data),
+                options: cloneChartConfig(sourceChart.config._config.options || {}),
+                plugins: sourceChart.config.plugins
+            });
+            document.getElementById("chartDialog").showModal();
+            requestAnimationFrame(() => expandedChart?.resize());
+        }));
+        document.getElementById("closeChartDialog").addEventListener("click", closeExpandedChart);
+        document.getElementById("chartDialog").addEventListener("close", event => {
+            if (!event.currentTarget.open && expandedChart) { expandedChart.destroy(); expandedChart = null; }
+        });
+        document.getElementById("chartDialog").addEventListener("click", event => {
+            if (event.target === event.currentTarget) closeExpandedChart();
+        });
+
+        const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
+        const companyLogoDomains = {
+            accenture: "accenture.com", adobe: "adobe.com", amazon: "amazon.com", atlassian: "atlassian.com",
+            bankofamerica: "bankofamerica.com", barclays: "barclays.com", capgemini: "capgemini.com",
+            cognizant: "cognizant.com", ctrls: "ctrls.com", deloitte: "deloitte.com",
+            ea: "ea.com", electronicarts: "ea.com", epam: "epam.com", flipkart: "flipkart.com", goldmansachs: "goldmansachs.com",
+            google: "google.com", hcl: "hcltech.com", hcltech: "hcltech.com", ibm: "ibm.com",
+            infosys: "infosys.com", intel: "intel.com", intuit: "intuit.com", jpmc: "jpmorganchase.com",
+            jpmorgan: "jpmorganchase.com", jpmorganchase: "jpmorganchase.com", larsentoubroinfotech: "ltimindtree.com",
+            lti: "ltimindtree.com", ltimindtree: "ltimindtree.com", mindtree: "ltimindtree.com",
+            microsoft: "microsoft.com", oracle: "oracle.com", salesforce: "salesforce.com",
+            micron: "micron.com", microntechnology: "micron.com", ncr: "ncr.com", pepsico: "pepsico.com",
+            samsung: "samsung.com", servicenow: "servicenow.com", swiggy: "swiggy.com",
+            tcs: "tcs.com", tataconsultancyservices: "tcs.com", techmahindra: "techmahindra.com",
+            uber: "uber.com", walmart: "walmart.com", wells: "wellsfargo.com", wellsfargo: "wellsfargo.com",
+            wipro: "wipro.com", zomato: "zomato.com"
+        };
+        function companyInitials(company) {
+            const words = String(company || "").trim().split(/\s+/).filter(Boolean);
+            return (words.length > 1 ? `${words[0][0]}${words[1][0]}` : (words[0] || "?").slice(0, 2)).toUpperCase();
+        }
+        function companyDomain(company) {
+            const key = String(company || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+            return companyLogoDomains[key] || "";
+        }
+        function companyMark(company, size = "") {
+            const domain = companyDomain(company);
+            const logo = domain
+                ? `<img src="https://www.google.com/s2/favicons?domain=${domain}&amp;sz=64" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-company-logo>`
+                : "";
+            return `<span class="company-mark${size ? ` ${size}` : ""}" title="${escapeHtml(company)}" aria-label="${escapeHtml(company)} logo">${escapeHtml(companyInitials(company))}${logo}</span>`;
+        }
+        document.addEventListener("error", event => {
+            const image = event.target;
+            if (image instanceof HTMLImageElement && image.hasAttribute("data-company-logo")) image.remove();
+        }, true);
+        async function fetchJson(path) {
+            const response = await fetch(`${apiBase}${path}`);
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
+            return payload;
+        }
+        function normalizeDepartment(value) {
+            const raw = String(value || "").trim().replace(/\s+/g, " ");
+            if (!raw) return "Department not listed";
+            const normalized = raw.toLowerCase().replace(/[–—]/g, "-");
+            const clean = normalized.replace(/\s*-\s*[123]$/, "").replace(/\s*[123]$/, "");
+            if (/cse.*(ai.*ml|artificial intelligence.*machine learning)/i.test(clean)) return "CSE (AI & ML)";
+            if (/cse.*(ai.*ds|artificial intelligence.*data science)/i.test(clean)) return "CSE (AI & DS)";
+            if (/cse.*(data science|cse.?ds)/i.test(clean)) return "CSE (Data Science)";
+            if (/cse.*internet of things.*blockchain/i.test(clean)) return "CSE (IoT, Cyber Security & Blockchain)";
+            if (/cse.*internet of things/i.test(clean)) return "CSE (IoT & Cyber Security)";
+            if (/cse.*(cyber|security)/i.test(clean)) return "CSE (Cyber Security)";
+            if (/artificial intelligence.*machine learning|^ai\s*(?:&|and)\s*ml$|^aiml$/i.test(clean)) return "AI & ML";
+            if (/artificial intelligence.*data science|^ai\s*(?:&|and)\s*ds$/i.test(clean)) return "AI & DS";
+            if (/computer science|\bcse\b|^cs(?:\s*-\s*[123])?$/i.test(clean)) return "CSE";
+            if (/information technology|^it$/i.test(clean)) return "IT";
+            if (/electronics|^ece$/i.test(clean)) return "ECE";
+            if (/electrical|^eee$/i.test(clean)) return "EEE";
+            if (/mechanical|\bmech\b/i.test(clean)) return "Mechanical";
+            if (/civil/i.test(clean)) return "Civil";
+            if (/chemical|^chem$/i.test(clean)) return "Chemical";
+            if (/bio[\s-]*tech/i.test(clean)) return "Biotechnology";
+            if (/production|^prod\.?$/i.test(clean)) return "Production";
+            return raw;
+        }
+        function normalizePdfRecords(archive) {
+            return archive.records.map(record => ({
+                id: `pdf-${record.academic_year}-${record.serial_number ?? record.roll_number}`,
+                rowId: `pdf-${record.academic_year}-${record.serial_number ?? record.roll_number}-${record.roll_number}`,
+                name: record.student_name || "Name not listed",
+                department: normalizeDepartment(record.branch),
+                company: record.company || "Company not listed",
+                jobRole: "",
+                academicYear: record.academic_year,
+                packageLpa: typeof record.package_lpa === "number" ? record.package_lpa : null,
+                campusStatus: record.campus_status || "Not listed",
+                rollNumber: record.roll_number,
+                serialNumber: record.serial_number,
+                dataSource: record.source_document,
+                sourceType: "official-pdf",
+                sourceUrl: record.source_url || sourceUrl
+            })).sort((left, right) => right.academicYear.localeCompare(left.academicYear) || left.company.localeCompare(right.company) || left.name.localeCompare(right.name));
+        }
+        function populateFilters() {
+            const years = [...new Set([...yearSummaries.map(year => year.academic_year), ...records.map(record => record.academicYear)])].filter(Boolean).sort().reverse();
+            const branches = [...new Set(records.map(record => record.department))].filter(Boolean).sort((a, b) => a.localeCompare(b));
+            const companies = [...new Set(records.map(record => record.company))].filter(Boolean).sort((a, b) => a.localeCompare(b));
+            yearFilter.innerHTML = '<option value="all">All academic years</option>' + years.map(year => `<option value="${escapeHtml(year)}">${escapeHtml(year)}</option>`).join("");
+            departmentFilter.innerHTML = '<option value="all">All departments</option>' + branches.map(branch => `<option value="${escapeHtml(branch)}">${escapeHtml(branch)}</option>`).join("");
+            document.getElementById("companyFilter").innerHTML = '<option value="all">All companies</option>' + companies.map(company => `<option value="${escapeHtml(company)}">${escapeHtml(company)}</option>`).join("");
+            document.getElementById("branchChips").innerHTML = [
+                '<button class="branch-chip branch-chip-all" type="button" data-branch-chip="all" style="--chip-delay:0ms">All branches</button>',
+                ...branches.map((branch, index) => `<button class="branch-chip" type="button" data-branch-chip="${escapeHtml(branch)}" style="--chip-delay:${Math.min(index * 35, 490)}ms">${escapeHtml(branch)}</button>`)
+            ].join("");
+            renderHistoricalCohorts();
+        }
+        function buildSearchIndex() {
+            const companies = [...new Set(records.map(record => record.company))].map(companyName => {
+                const companyRecords = records.filter(record => record.company === companyName);
+                const subtitle = `${companyRecords.length.toLocaleString()} placement rows · ${new Set(companyRecords.map(record => record.academicYear)).size} cohorts`;
+                return { entity: "company", id: companyName, companyName, jobRole: "", studentName: "", department: "", subtitle };
+            });
+            const pdfStudents = records.filter(record => record.sourceType === "official-pdf").map(record => ({
+                entity: "student",
+                id: record.id,
+                companyName: record.company,
+                jobRole: "",
+                studentName: record.name,
+                department: record.department,
+                subtitle: `${record.department} · ${record.academicYear}`
+            }));
+            placementFuse = new Fuse([...companies, ...pdfStudents], {
+                threshold: 0.3,
+                ignoreLocation: true,
+                minMatchCharLength: 2,
+                keys: [
+                    { name: "companyName", weight: 0.5 },
+                    { name: "jobRole", weight: 0.3 },
+                    { name: "studentName", weight: 0.1 },
+                    { name: "department", weight: 0.1 }
+                ]
+            });
+        }
+        function parseNaturalQuery(query) {
+            if (!query.trim() || typeof nlp !== "function") return {};
+            const normalized = nlp(query).text("normal").toLowerCase().replace(/[–—]/g, "-");
+            const intent = {};
+            const branches = [
+                { pattern: /\b(cse|computer science(?:\s*(?:&|and)\s*engineering)?)\b/i, alias: "cse", label: "CSE / Computer Science" },
+                { pattern: /\b(information technology|\bit\b)\b/i, alias: "it", label: "Information Technology" },
+                { pattern: /\b(mechanical|mech)\b/i, alias: "mechanical", label: "Mechanical" },
+                { pattern: /\b(ece|electronics(?: and| &) communication)\b/i, alias: "ece", label: "ECE" },
+                { pattern: /\b(eee|electrical and electronics)\b/i, alias: "eee", label: "EEE" },
+                { pattern: /\b(civil)\b/i, alias: "civil", label: "Civil" },
+                { pattern: /\b(chemical)\b/i, alias: "chemical", label: "Chemical" },
+                { pattern: /\b(biotech|biotechnology)\b/i, alias: "biotechnology", label: "Biotechnology" }
+            ];
+            const branch = branches.find(item => item.pattern.test(normalized));
+            if (branch) intent.branch = branch;
+
+            const yearRange = normalized.match(/\b(20\d{2})\s*-\s*(\d{2}|20\d{2})\b/);
+            const standaloneYear = !yearRange && normalized.match(/\b(201[5-9]|202\d)\b/);
+            if (yearRange) {
+                const year = `${yearRange[1]}-${yearRange[2].slice(-2)}`;
+                if (officialCohorts.some(cohort => cohort.academic_year === year)) intent.year = year;
+            } else if (standaloneYear) {
+                const startYear = Number(standaloneYear[1]);
+                const nextYear = String(startYear + 1).slice(-2);
+                const year = `${startYear}-${nextYear}`;
+                if (officialCohorts.some(cohort => cohort.academic_year === year)) intent.year = year;
+            }
+
+            const threshold = normalized.match(/\b(above|over|more than|greater than|at least|below|under|less than|at most|>=|<=|>|<)\s*(?:₹|rs\.?\s*)?(\d+(?:\.\d+)?)\s*(?:lpa|lakhs?|lacs?)?\b/i);
+            if (threshold) {
+                const comparison = threshold[1];
+                const operator = /^(above|over|more than|greater than|>)$/i.test(comparison) ? ">"
+                    : /^(below|under|less than|<)$/i.test(comparison) ? "<"
+                    : /^(at least|>=)$/i.test(comparison) ? ">=" : "<=";
+                intent.salary = { operator, amount: Number(threshold[2]) };
+            }
+
+            return intent;
+        }
+        function matchesDepartmentAlias(department, branch) {
+            if (!branch) return true;
+            const names = {
+                cse: /computer science|\bcse\b/i,
+                it: /information technology|^it\b/i,
+                mechanical: /mechanical|\bmech\b/i,
+                ece: /electronics|\bece\b/i,
+                eee: /electrical|\beee\b/i,
+                civil: /civil/i,
+                chemical: /chemical/i,
+                biotechnology: /biotech/i
+            };
+            return names[branch.alias]?.test(department || "") || false;
+        }
+        function packageMatches(packageLpa, salaryIntent) {
+            if (!salaryIntent) return true;
+            if (typeof packageLpa !== "number") return false;
+            const { operator, amount } = salaryIntent;
+            return operator === ">" ? packageLpa > amount : operator === ">=" ? packageLpa >= amount : operator === "<" ? packageLpa < amount : packageLpa <= amount;
+        }
+        function renderIntentPills() {
+            const pills = [];
+            if (activeIntent.branch) pills.push(`Branch: ${activeIntent.branch.label}`);
+            if (activeIntent.year) pills.push(`Academic year: ${activeIntent.year}`);
+            if (activeIntent.salary) pills.push(`Package: ${activeIntent.salary.operator} ${activeIntent.salary.amount} LPA`);
+            const container = document.getElementById("searchPills");
+            container.innerHTML = pills.map(pill => `<span class="intent-pill">${escapeHtml(pill)}</span>`).join("");
+        }
+        function selectedRecords(ignoreDepartment = false) {
+            const year = yearFilter.value;
+            const department = departmentFilter.value;
+            const company = document.getElementById("companyFilter").value;
+            return records.filter(record =>
+                (year === "all" || record.academicYear === year) &&
+                (ignoreDepartment || department === "all" || record.department === department) &&
+                matchesDepartmentAlias(record.department, activeIntent.branch) &&
+                (company === "all" || record.company === company) &&
+                packageMatches(record.packageLpa, activeIntent.salary) &&
+                (!searchTarget.company || record.company === searchTarget.company) &&
+                (!searchTarget.studentId || record.id === searchTarget.studentId)
+            );
+        }
+        function countNamedCompanies(year = "all") {
+            const names = new Set();
+            records.forEach(record => {
+                const company = record.company?.trim();
+                if (company && company.toLowerCase() !== "company not listed" && (year === "all" || record.academicYear === year)) {
+                    names.add(company.toLocaleLowerCase());
+                }
+            });
+            return names.size;
+        }
+        function updateSummary() {
+            const selectedYear = yearFilter.value;
+            const summary = yearSummaries.find(year => year.academic_year === selectedYear) || yearSummaries[yearSummaries.length - 1];
+            const cohortYears = yearSummaries.map(year => year.academic_year).sort();
+            const rangeText = cohortYears.length ? `From ${cohortYears[0]} up to ${cohortYears[cohortYears.length - 1]}` : "Year range unavailable";
+            const cohortLabel = selectedYear === "all" ? `Latest year · ${summary?.academic_year || ""}` : selectedYear;
+            const placedPdfLink = document.getElementById("placedPdfLink");
+            document.getElementById("placedLabel").textContent = `Students placed · ${cohortLabel}`;
+            document.getElementById("placedValue").textContent = summary?.placed?.toLocaleString() || "—";
+            placedPdfLink.setAttribute("aria-label", `Show placement records for ${summary?.academic_year || "the latest year"}`);
+            document.getElementById("cohortValue").textContent = summary ? `${summary.placed.toLocaleString()} of ${summary.students.toLocaleString()} eligible students` : "Summary not available";
+            document.getElementById("rateValue").textContent = summary ? `${Number(summary.placement_rate).toFixed(0)}%` : "—";
+            document.getElementById("rateDetail").textContent = summary ? `${summary.academic_year} placement rate` : "For the selected year";
+            document.getElementById("recordsValue").textContent = records.length.toLocaleString();
+            document.getElementById("companiesValue").textContent = countNamedCompanies(selectedYear === "all" ? "all" : selectedYear).toLocaleString();
+            document.getElementById("companiesRange").textContent = selectedYear === "all"
+                ? "All years · listed employers"
+                : `${selectedYear} · listed employers`;
+            document.getElementById("recordsRange").textContent = rangeText;
+            document.getElementById("yearRangeBadge").textContent = cohortYears.length ? `${cohortYears[0]} — ${cohortYears[cohortYears.length - 1]}` : "Year range unavailable";
+            document.querySelectorAll("[data-branch-chip]").forEach(chip => {
+                const selected = chip.dataset.branchChip === departmentFilter.value || (chip.dataset.branchChip === "all" && departmentFilter.value === "all");
+                chip.classList.toggle("is-active", selected);
+                chip.setAttribute("aria-pressed", String(selected));
+            });
+            document.querySelectorAll("[data-cohort-year]").forEach(card => {
+                const selected = card.dataset.cohortYear === yearFilter.value;
+                card.classList.toggle("is-selected", selected);
+                card.setAttribute("aria-pressed", String(selected));
+            });
+        }
+        function updateCharts(quiet = false, visibleRecords = selectedRecords()) {
+            const year = yearFilter.value;
+            const officialYears = year === "all" ? yearSummaries : yearSummaries.filter(item => item.academic_year === year);
+            cohortChart.data.labels = officialYears.map(item => item.academic_year);
+            cohortChart.data.datasets[0].data = officialYears.map(item => item.students);
+            cohortChart.data.datasets[1].data = officialYears.map(item => item.placed);
+            cohortChart.update(quiet ? "none" : undefined);
+
+            const branchRecords = selectedRecords(true);
+            const branchCounts = new Map();
+            branchRecords.forEach(record => branchCounts.set(record.department, (branchCounts.get(record.department) || 0) + 1));
+            const sortedBranches = [...branchCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+            departmentChart.data.labels = sortedBranches.map(([branch]) => branch);
+            departmentChart.data.datasets[0].data = sortedBranches.map(([, count]) => count);
+            departmentChartYear.textContent = year === "all"
+                ? `From ${officialCohorts[0].academic_year} to ${officialCohorts[officialCohorts.length - 1].academic_year}`
+                : year;
+            departmentChart.update(quiet ? "none" : undefined);
+
+            const companyCounts = new Map();
+            visibleRecords.forEach(record => companyCounts.set(record.company, (companyCounts.get(record.company) || 0) + 1));
+            const topCompanies = [...companyCounts.entries()].sort((a, b) => b[1] - a[1]);
+            const chartCompanies = topCompanies.slice(0, 6);
+            const remaining = topCompanies.slice(6).reduce((sum, [, count]) => sum + count, 0);
+            if (remaining) chartCompanies.push(["Other companies", remaining]);
+            companyChart.data.labels = chartCompanies.map(([company]) => company);
+            companyChart.data.datasets[0].data = chartCompanies.map(([, count]) => count);
+            companyChart.data.datasets[0].backgroundColor = chartCompanies.map((_, index) => palette[index % palette.length]);
+            companyChart.update(quiet ? "none" : undefined);
+            const offerCount = visibleRecords.length;
+            document.getElementById("offerCountLabel").textContent = `${offerCount.toLocaleString()} ${activeIntent.salary ? "CTC RECORDS" : "PLACEMENT ROWS"}`;
+            const countLabel = activeIntent.salary ? "CTC records" : "placements";
+            const legendMarkup = chartCompanies.slice(0, 7).map(([company, count]) => `<div class="flex items-center gap-2"><span class="shrink-0">${companyMark(company, "is-small")}</span><span class="min-w-0 flex-1"><span class="block truncate text-xs text-slate-400">${escapeHtml(company)}</span><strong class="text-sm text-white">${count.toLocaleString()}</strong><span class="ml-2 text-[10px] text-slate-500">${countLabel}</span></span></div>`);
+            document.getElementById("companyLegendLeft").innerHTML = legendMarkup.slice(0, 3).join("");
+            document.getElementById("companyLegendRight").innerHTML = chartCompanies.length
+                ? `<div class="space-y-4 md:hidden">${legendMarkup.join("")}</div><div class="hidden space-y-4 md:block">${legendMarkup.slice(3).join("")}</div>`
+                : '<p class="text-xs text-slate-500">No company placements in this view.</p>';
+        }
+        function renderHistoricalCohorts() {
+            const packageStats = new Map();
+            const companyStats = new Map();
+            records.forEach(record => {
+                const company = record.company?.trim();
+                if (company && company.toLowerCase() !== "company not listed") {
+                    if (!companyStats.has(record.academicYear)) companyStats.set(record.academicYear, new Map());
+                    companyStats.get(record.academicYear).set(company.toLocaleLowerCase(), company);
+                }
+                if (typeof record.packageLpa !== "number" || !Number.isFinite(record.packageLpa) || record.packageLpa <= 0) return;
+                if (!packageStats.has(record.academicYear)) packageStats.set(record.academicYear, []);
+                packageStats.get(record.academicYear).push(record.packageLpa);
+            });
+            const formatLpa = amount => `${amount.toLocaleString(undefined, { maximumFractionDigits: 1 })} LPA`;
+            document.getElementById("historicalCohortRows").innerHTML = [...officialCohorts].reverse().map((cohort, index) => {
+                const packages = (packageStats.get(cohort.academic_year) || []).sort((a, b) => a - b);
+                const peak = packages.length ? formatLpa(packages[packages.length - 1]) : "Not listed";
+                const average = packages.length ? formatLpa(packages.reduce((sum, value) => sum + value, 0) / packages.length) : "Not listed";
+                const median = packages.length ? formatLpa(packages.length % 2 ? packages[(packages.length - 1) / 2] : (packages[packages.length / 2 - 1] + packages[packages.length / 2]) / 2) : "Not listed";
+                const namedCompanies = companyStats.get(cohort.academic_year)?.size || 0;
+                const sourceCompanies = [...(companyStats.get(cohort.academic_year)?.values() || [])].sort((a, b) => a.localeCompare(b));
+                return `<button class="year-card" type="button" data-cohort-year="${cohort.academic_year}" aria-pressed="false" aria-label="Show ${cohort.academic_year} placement records" style="animation:chip-arrive .42s cubic-bezier(.2,.75,.25,1) ${Math.min(index * 35, 350)}ms both"><span class="relative z-[1] flex w-full min-w-0 items-center justify-between gap-2"><span class="mono text-xs font-semibold tracking-wide text-[#c4d2c7]">${cohort.academic_year}</span><span class="rounded-full border border-slate-700/80 bg-slate-950/50 px-2 py-1 text-[9px] font-semibold uppercase tracking-wider text-slate-400">${cohort.placement_rate}% placed</span></span><span class="relative z-[1] mt-4 flex w-full min-w-0 items-end justify-between gap-2"><span><span class="block text-[10px] text-slate-500">Students placed</span><strong class="mt-1 block text-2xl font-extrabold tracking-tight text-white">${cohort.placed.toLocaleString()}</strong></span><span class="text-right"><span class="block text-[10px] text-slate-500">Eligible</span><strong class="mt-1 block text-sm font-semibold text-slate-300">${cohort.students.toLocaleString()}</strong></span></span><span class="year-progress relative z-[1] mt-3 block w-full"><span style="width:${cohort.placement_rate}%"></span></span><span class="relative z-[1] mt-4 grid w-full min-w-0 grid-cols-2 gap-x-3 gap-y-3 border-t border-slate-700/70 pt-3"><span><span class="block text-[9px] uppercase tracking-wider text-slate-500">Highest package</span><strong class="mt-1 block text-xs font-bold text-[#d5c49f]">${peak}</strong></span><span><span class="block text-[9px] uppercase tracking-wider text-slate-500">Average package</span><strong class="mt-1 block text-xs font-bold text-[#c4d2c7]">${average}</strong></span><span><span class="block text-[9px] uppercase tracking-wider text-slate-500">Median package</span><strong class="mt-1 block text-xs font-semibold text-slate-200">${median}</strong></span><span><span class="block text-[9px] uppercase tracking-wider text-slate-500">CTC records</span><strong class="mt-1 block text-xs font-semibold text-slate-200">${packages.length.toLocaleString()}</strong></span><span class="col-span-2"><span class="block text-[9px] uppercase tracking-wider text-slate-500">Employers listed</span><strong class="mt-1 block text-xs font-semibold text-slate-200">${namedCompanies.toLocaleString()}</strong></span></span></button>`;
+            }).join("");
+            renderEmployerHistory(companyStats);
+        }
+        function renderEmployerHistory(companyStats) {
+            const maximum = Math.max(1, ...[...companyStats.values()].map(companies => companies.size));
+            document.getElementById("employerHistoryRows").innerHTML = [...officialCohorts].reverse().map(cohort => {
+                const companies = [...(companyStats.get(cohort.academic_year)?.values() || [])].sort((a, b) => a.localeCompare(b));
+                const logos = companies.filter(company => companyDomain(company));
+                const examples = (logos.length ? logos : companies).slice(0, 3);
+                const count = companies.length;
+                const width = `${count / maximum * 100}%`;
+                return `<button class="employer-year-row" type="button" data-employer-year="${cohort.academic_year}" aria-label="View ${cohort.academic_year} placement records; ${count} employers listed"><span class="mono text-xs font-semibold text-[#c4d2c7]">${cohort.academic_year}</span><span class="min-w-0"><span class="flex items-baseline justify-between gap-2"><strong class="text-sm font-bold text-white">${count.toLocaleString()}</strong><span class="text-[9px] text-slate-500">listed employers</span></span><span class="mt-2 block h-1 overflow-hidden rounded-full bg-slate-800"><span class="block h-full rounded-full bg-gradient-to-r from-[#91aab0] to-[#b9a98c]" style="width:${width}"></span></span></span><span class="employer-samples flex min-w-0 items-center gap-2">${examples.map(company => `<span class="inline-flex min-w-0 items-center gap-1.5">${companyMark(company, "is-small")}<span class="employer-sample-name truncate text-[10px] text-slate-400">${escapeHtml(company)}</span></span>`).join("") || '<span class="text-[10px] text-slate-500">No employer names listed</span>'}</span><span class="text-right text-[10px] text-slate-500">${cohort.placed.toLocaleString()} placed <span aria-hidden="true">↗</span></span></button>`;
+            }).join("");
+        }
+        function renderCompanyCards(visibleRecords = selectedRecords()) {
+            const counts = new Map();
+            visibleRecords.forEach(record => {
+                if (!counts.has(record.company)) counts.set(record.company, []);
+                counts.get(record.company).push(record);
+            });
+            const leaders = [...counts.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 6);
+            document.getElementById("companyCards").innerHTML = leaders.map(([company, entries], index) => {
+                const departments = [...new Set(entries.map(entry => entry.department))];
+                const years = [...new Set(entries.map(entry => entry.academicYear))].sort().reverse();
+                return `<article class="company-card panel p-5" data-company-card="${escapeHtml(company)}" style="animation:fade-up .32s ease-out ${index * 35}ms both"><div class="flex items-start justify-between gap-3"><div class="flex min-w-0 items-center gap-3">${companyMark(company, "is-large")}<div class="min-w-0"><h3 class="truncate text-sm font-semibold text-white">${escapeHtml(company)}</h3><p class="mt-1 text-[10px] text-slate-500">Recruiter activity</p></div></div><span class="mono whitespace-nowrap text-xs text-slate-300">${entries.length.toLocaleString()} placements</span></div><div class="mt-4 grid grid-cols-2 gap-3 border-y border-slate-800 py-3"><div><p class="text-[10px] uppercase tracking-wide text-slate-500">Years</p><p class="mt-1 text-xs text-slate-200">${years.map(escapeHtml).join(", ") || "Not listed"}</p></div><div><p class="text-[10px] uppercase tracking-wide text-slate-500">Departments</p><p class="mt-1 truncate text-xs text-slate-200" title="${escapeHtml(departments.join(", "))}">${departments.length} represented</p></div></div><details class="group mt-3"><summary class="flex cursor-pointer list-none items-center justify-between text-xs font-medium text-slate-300"><span>Placement details</span><span class="text-slate-400 transition group-open:rotate-45">+</span></summary><div class="mt-3 text-[11px] leading-5 text-slate-400">${escapeHtml(departments.slice(0, 4).join(" · ") || "Department not listed")}<p class="mt-2 text-[10px] text-slate-500">Interview rounds and eligibility details are not included in the placement records.</p></div></details><button class="mt-4 min-h-11 w-full rounded-lg border border-slate-700 px-3 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800" type="button">View placement records</button></article>`;
+            }).join("");
+            document.getElementById("companyEmpty").style.display = leaders.length ? "none" : "block";
+        }
+        function renderRecords({ quiet = false } = {}) {
+            const filtered = selectedRecords();
+            const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            currentPage = Math.min(currentPage, pages);
+            const pageRecords = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+            recordsBody.innerHTML = pageRecords.map(record => `<tr><td><span class="block font-semibold text-slate-100">${escapeHtml(record.name)}</span><span class="mono mt-1 block text-[10px] text-slate-500">Roll ${escapeHtml(record.rollNumber)} · ${escapeHtml(record.campusStatus)}</span></td><td class="text-slate-300">${escapeHtml(record.department)}</td><td><span class="inline-flex min-w-0 items-center gap-2">${companyMark(record.company, "is-small")}<span class="truncate text-slate-200">${escapeHtml(record.company)}</span></span></td><td class="mono text-[11px] text-slate-300">${typeof record.packageLpa === "number" ? `${record.packageLpa} LPA` : "—"}</td><td class="mono text-[11px] text-slate-400">${escapeHtml(record.academicYear)}</td></tr>`).join("");
+            document.getElementById("recordsCards").innerHTML = pageRecords.map(record => `<article class="record-card p-4"><div class="flex items-start justify-between gap-3"><div class="min-w-0"><h3 class="truncate text-sm font-semibold text-white">${escapeHtml(record.name)}</h3><p class="mono mt-1 text-[10px] text-slate-500">Roll ${escapeHtml(record.rollNumber)} · ${escapeHtml(record.campusStatus)}</p></div><span class="shrink-0 rounded-full border border-slate-700 px-2 py-1 text-[10px] text-slate-300">${escapeHtml(record.academicYear)}</span></div><div class="mt-3 grid grid-cols-2 gap-3 border-t border-slate-800 pt-3 text-xs"><div class="min-w-0"><p class="text-[10px] text-slate-500">Department</p><p class="mt-1 break-words text-slate-200">${escapeHtml(record.department)}</p></div><div class="col-span-2 min-w-0"><p class="text-[10px] text-slate-500">Company</p><p class="mt-1 flex min-w-0 items-center gap-2 break-words text-slate-200">${companyMark(record.company, "is-small")}<span>${escapeHtml(record.company)}</span></p></div><div class="col-span-2"><p class="text-[10px] text-slate-500">Package</p><p class="mt-1 font-semibold text-slate-100">${typeof record.packageLpa === "number" ? `${record.packageLpa} LPA` : "Not listed"}</p></div></div></article>`).join("");
+            document.getElementById("recordsEmpty").style.display = filtered.length ? "none" : "block";
+            document.getElementById("resultCount").textContent = activeIntent.salary
+                ? `Showing ${pageRecords.length.toLocaleString()} of ${filtered.length.toLocaleString()} placement records with a listed package`
+                : `Showing ${pageRecords.length.toLocaleString()} of ${filtered.length.toLocaleString()} placement records`;
+            document.getElementById("pageStatus").textContent = `Page ${currentPage} of ${pages}`;
+            document.getElementById("previousPage").disabled = currentPage <= 1;
+            document.getElementById("nextPage").disabled = currentPage >= pages;
+            updateSummary();
+            updateCharts(quiet, filtered);
+            renderCompanyCards(filtered);
+        }
+        async function loadDashboard() {
+            yearSummaries = officialCohorts;
+            renderHistoricalCohorts();
+            try {
+                if (typeof Fuse === "undefined") throw new Error("Fuse.js did not load. Check your internet connection and refresh.");
+                const pdfArchiveResponse = await fetchJson("/cbit-pdf-placements");
+                records = normalizePdfRecords(pdfArchiveResponse);
+                populateFilters();
+                buildSearchIndex();
+                const footerStatus = document.getElementById("footerDataStatus");
+                footerStatus.textContent = `${records.length.toLocaleString()} placement records loaded`;
+                footerStatus.classList.remove("is-error");
+                document.getElementById("recordsValue").textContent = records.length.toLocaleString();
+                window.placementPulseData = { records, yearSummaries };
+                renderRecords();
+            } catch (error) {
+                console.error("Unable to load CBIT placement data:", error);
+                const footerStatus = document.getElementById("footerDataStatus");
+                footerStatus.textContent = `Records unavailable · ${error.message}`;
+                footerStatus.classList.add("is-error");
+                populateFilters();
+                renderRecords();
+                document.getElementById("recordsEmpty").textContent = "Placement records could not be loaded. Please try again later.";
+            }
+        }
+        const departmentChartYear = document.getElementById("departmentChartYear");
+        const companyFilter = document.getElementById("companyFilter");
+        const searchInput = document.getElementById("globalSearch");
+        function clearSearchState() {
+            activeIntent = {};
+            searchInput.value = "";
+            searchTarget.company = null;
+            searchTarget.studentId = null;
+            renderIntentPills();
+            closeSearch();
+        }
+        function selectAcademicYear(year) {
+            if (![...yearFilter.options].some(option => option.value === year)) return;
+            yearFilter.value = year;
+            clearSearchState();
+            currentPage = 1;
+            renderRecords();
+            document.getElementById("submissions-title").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        function selectDepartment(department) {
+            if (![...departmentFilter.options].some(option => option.value === department)) return;
+            departmentFilter.value = department;
+            companyFilter.value = "all";
+            clearSearchState();
+            currentPage = 1;
+            renderRecords();
+            document.getElementById("submissions-title").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        function selectCompany(company) {
+            if (company === "Other companies" || ![...companyFilter.options].some(option => option.value === company)) return;
+            companyFilter.value = company;
+            clearSearchState();
+            currentPage = 1;
+            renderRecords();
+            document.getElementById("submissions-title").scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        [yearFilter, departmentFilter, companyFilter].forEach(select => select.addEventListener("change", () => {
+            currentPage = 1;
+            searchTarget.company = null;
+            searchTarget.studentId = null;
+            activeIntent = {};
+            searchInput.value = "";
+            renderIntentPills();
+            closeSearch();
+            renderRecords();
+        }));
+        document.getElementById("branchChips").addEventListener("click", event => {
+            const chip = event.target.closest("[data-branch-chip]");
+            if (!chip) return;
+            if (chip.dataset.branchChip === "all") {
+                departmentFilter.value = "all";
+                clearSearchState();
+                currentPage = 1;
+                renderRecords();
+                return;
+            }
+            selectDepartment(chip.dataset.branchChip);
+        });
+        document.getElementById("historicalCohortRows").addEventListener("click", event => {
+            const button = event.target.closest("[data-cohort-year]");
+            if (button) selectAcademicYear(button.dataset.cohortYear);
+        });
+        document.getElementById("employerHistoryRows").addEventListener("click", event => {
+            const button = event.target.closest("[data-employer-year]");
+            if (button) selectAcademicYear(button.dataset.employerYear);
+        });
+        document.getElementById("placedPdfLink").addEventListener("click", () => {
+            const summary = yearSummaries.find(year => year.academic_year === yearFilter.value) || yearSummaries[yearSummaries.length - 1];
+            if (summary) selectAcademicYear(summary.academic_year);
+        });
+        document.getElementById("companyCards").addEventListener("click", event => {
+            const card = event.target.closest("[data-company-card]");
+            if (card && !event.target.closest("summary")) selectCompany(card.dataset.companyCard);
+        });
+        document.getElementById("resetFilters").addEventListener("click", () => {
+            yearFilter.value = "all";
+            departmentFilter.value = "all";
+            document.getElementById("companyFilter").value = "all";
+            searchTarget.company = null;
+            searchTarget.studentId = null;
+            activeIntent = {};
+            renderIntentPills();
+            searchInput.value = "";
+            currentPage = 1;
+            renderRecords();
+        });
+        document.getElementById("previousPage").addEventListener("click", () => { currentPage = Math.max(1, currentPage - 1); renderRecords(); });
+        document.getElementById("nextPage").addEventListener("click", () => { currentPage += 1; renderRecords(); });
+
+        const searchDropdown = document.getElementById("searchResults");
+        let activeSearchResult = -1;
+        const searchEscape = value => escapeHtml(value);
+        function closeSearch() { searchDropdown.classList.remove("is-open"); searchInput.setAttribute("aria-expanded", "false"); activeSearchResult = -1; }
+        function renderSearchResults(query) {
+            const cleanQuery = query.trim();
+            if (!placementFuse || cleanQuery.length < 2) { closeSearch(); return; }
+            const results = placementFuse.search(cleanQuery).slice(0, 50).map(match => match.item);
+            const companies = results.filter(item => item.entity === "company").slice(0, 5);
+            const studentResults = results.filter(item => item.entity === "student").slice(0, 6);
+            const button = (item, title) => `<button class="search-result" type="button" role="option" data-search-entity="${item.entity}" data-search-id="${searchEscape(item.id)}">${companyMark(item.companyName, "is-small")}<span class="min-w-0"><span class="block truncate text-xs font-semibold">${searchEscape(title)}</span><span class="mt-0.5 block truncate text-[10px] text-slate-400">${searchEscape(item.subtitle)}</span></span></button>`;
+            const group = (title, content) => `<section class="search-group"><h3 class="search-group-label">${title}</h3>${content}</section>`;
+            searchDropdown.innerHTML = [
+                group("Companies", companies.length ? companies.map(item => button(item, item.companyName)).join("") : '<p class="search-note">No matching companies.</p>'),
+                group("Students", studentResults.length ? studentResults.map(item => button(item, item.studentName)).join("") : '<p class="search-note">No matching students.</p>'),
+                group("Interview Experiences", '<p class="search-note">Interview stories are not included in the available placement records.</p>')
+            ].join("");
+            searchDropdown.classList.add("is-open");
+            searchInput.setAttribute("aria-expanded", "true");
+            activeSearchResult = -1;
+        }
+        let searchRenderTimer = 0;
+        searchInput.addEventListener("input", () => {
+            activeIntent = parseNaturalQuery(searchInput.value);
+            yearFilter.value = activeIntent.year || "all";
+            departmentFilter.value = "all";
+            document.getElementById("companyFilter").value = "all";
+            searchTarget.company = null;
+            searchTarget.studentId = null;
+            currentPage = 1;
+            renderIntentPills();
+            window.clearTimeout(searchRenderTimer);
+            searchRenderTimer = window.setTimeout(() => renderRecords({ quiet: true }), 75);
+            if (Object.keys(activeIntent).length) closeSearch();
+            else renderSearchResults(searchInput.value);
+        });
+        searchInput.addEventListener("keydown", event => {
+            const options = [...searchDropdown.querySelectorAll(".search-result")];
+            if (event.key === "Escape") { closeSearch(); return; }
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                if (!options.length) return;
+                event.preventDefault();
+                activeSearchResult = (activeSearchResult + (event.key === "ArrowDown" ? 1 : options.length - 1)) % options.length;
+                options.forEach((option, index) => option.classList.toggle("is-active", index === activeSearchResult));
+            }
+            if (event.key === "Enter") { event.preventDefault(); (options[activeSearchResult] || options[0])?.click(); }
+        });
+        searchDropdown.addEventListener("click", event => {
+            const option = event.target.closest("[data-search-entity]");
+            if (!option) return;
+            activeIntent = {};
+            renderIntentPills();
+            searchTarget.company = option.dataset.searchEntity === "company" ? option.dataset.searchId : null;
+            searchTarget.studentId = option.dataset.searchEntity === "student" ? option.dataset.searchId : null;
+            currentPage = 1;
+            closeSearch();
+            renderRecords();
+            document.getElementById("submissions-title").scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        document.addEventListener("pointerdown", event => { if (!event.target.closest(".search-shell")) closeSearch(); });
+        if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            const revealObserver = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add("is-visible");
+                    revealObserver.unobserve(entry.target);
+                });
+            }, { rootMargin: "0px 0px -6% 0px", threshold: 0.08 });
+            document.querySelectorAll('main[data-main-view] > section').forEach((section, index) => {
+                section.classList.add("reveal-on-scroll");
+                section.style.setProperty("--reveal-delay", `${Math.min(index * 35, 140)}ms`);
+                revealObserver.observe(section);
+            });
+        }
+        const desktopWelcome = document.getElementById("desktopWelcome");
+        const closeDesktopWelcome = document.getElementById("closeDesktopWelcome");
+        let welcomeTimer = 0;
+        let welcomeAutoDismissTimer = 0;
+        function dismissDesktopWelcome() {
+            window.clearTimeout(welcomeTimer);
+            window.clearTimeout(welcomeAutoDismissTimer);
+            desktopWelcome.hidden = true;
+            desktopWelcome.classList.remove("is-open");
+        }
+        closeDesktopWelcome.addEventListener("click", dismissDesktopWelcome);
+        if (window.matchMedia("(min-width: 1024px)").matches) {
+            welcomeTimer = window.setTimeout(() => {
+                desktopWelcome.hidden = false;
+                requestAnimationFrame(() => desktopWelcome.classList.add("is-open"));
+                welcomeAutoDismissTimer = window.setTimeout(dismissDesktopWelcome, 12000);
+            }, 550);
+        }
+        loadDashboard();
+
+        const progressKey = "placementPulseRoadmapV1";
+        let savedProgress = {};
+        try { savedProgress = JSON.parse(localStorage.getItem(progressKey) || "{}"); } catch { savedProgress = {}; }
+        const checkboxes = [...document.querySelectorAll(".task-check")];
+        checkboxes.forEach(checkbox => { checkbox.checked = Boolean(savedProgress[checkbox.dataset.task]); checkbox.addEventListener("change", () => { savedProgress[checkbox.dataset.task] = checkbox.checked; try { localStorage.setItem(progressKey, JSON.stringify(savedProgress)); } catch { /* Storage may be disabled in private browsing. */ } updateProgress(); }); });
+        function updateProgress() {
+            const complete = checkboxes.filter(checkbox => checkbox.checked).length;
+            const percent = Math.round(complete / checkboxes.length * 100);
+            document.getElementById("progressPercent").textContent = `${percent}%`;
+            document.getElementById("progressCount").textContent = `${complete} of ${checkboxes.length} milestones complete`;
+            document.getElementById("progressFill").style.width = `${percent}%`;
+            document.querySelector('[role="progressbar"]').setAttribute("aria-valuenow", percent);
+        }
+        updateProgress();
+
+        document.querySelectorAll(".roadmap-tab").forEach(tab => tab.addEventListener("click", () => {
+            document.querySelectorAll(".roadmap-tab").forEach(item => { const selected = item === tab; item.setAttribute("aria-selected", String(selected)); item.classList.toggle("bg-lime-300", selected); item.classList.toggle("text-slate-950", selected); item.classList.toggle("font-bold", selected); item.classList.toggle("text-slate-400", !selected); item.classList.toggle("font-semibold", !selected); });
+            document.querySelectorAll(".task-list").forEach(panel => { const selected = panel.id === tab.getAttribute("aria-controls"); panel.hidden = !selected; panel.classList.toggle("hidden", !selected); });
+        }));
+
+        const chatHistory = [];
+        window.placementPulseChatHistory = chatHistory;
+        const assistantPanel = document.getElementById("assistantPanel");
+        const assistantLauncher = document.getElementById("assistantLauncher");
+        const assistantLog = document.getElementById("assistantLog");
+        const assistantInput = document.getElementById("assistantInput");
+        const assistantForm = document.getElementById("assistantForm");
+        const chatDelay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+        function setAssistantOpen(open) {
+            const fullScreen = open && window.matchMedia("(max-width: 700px)").matches;
+            assistantPanel.classList.toggle("is-open", open);
+            assistantPanel.setAttribute("aria-hidden", String(!open));
+            assistantPanel.setAttribute("aria-modal", String(fullScreen));
+            assistantLauncher.setAttribute("aria-expanded", String(open));
+            assistantLauncher.style.display = open ? "none" : "";
+            document.body.classList.toggle("assistant-open", fullScreen);
+            if (open) assistantInput.focus();
+        }
+        assistantLauncher.addEventListener("click", () => setAssistantOpen(!assistantPanel.classList.contains("is-open")));
+        document.getElementById("closeAssistant").addEventListener("click", () => setAssistantOpen(false));
+        document.addEventListener("keydown", event => { if (event.key === "Escape" && assistantPanel.classList.contains("is-open")) setAssistantOpen(false); });
+
+        function formatChatMarkdown(markdown) {
+            const inline = line => escapeHtml(line)
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(/`([^`]+)`/g, "<code>$1</code>")
+                .replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, (match, label, href) => {
+                    try {
+                        if (href.startsWith("#") && /^#[a-z0-9_-]+$/i.test(href)) return `<a href="${href}">${label}</a>`;
+                        const hostname = new URL(href).hostname;
+                        return hostname.endsWith("cbit.ac.in") ? `<a href="${href}" target="_blank" rel="noopener noreferrer">${label}</a>` : label;
+                    } catch { return label; }
+                });
+            const output = [];
+            let listOpen = false;
+            for (const rawLine of markdown.split("\n")) {
+                const line = rawLine.trim();
+                if (!line) { if (listOpen) { output.push("</ul>"); listOpen = false; } continue; }
+                if (line.startsWith("### ")) { if (listOpen) { output.push("</ul>"); listOpen = false; } output.push(`<h3>${inline(line.slice(4))}</h3>`); }
+                else if (line.startsWith("- ")) { if (!listOpen) { output.push("<ul>"); listOpen = true; } output.push(`<li>${inline(line.slice(2))}</li>`); }
+                else { if (listOpen) { output.push("</ul>"); listOpen = false; } output.push(`<p>${inline(line)}</p>`); }
+            }
+            if (listOpen) output.push("</ul>");
+            return output.join("");
+        }
+        function getCompanyFromMessage(message, context = "") {
+            const haystack = `${message} ${context}`.toLowerCase();
+            const companies = [...new Set(records.map(record => record.company))].sort((a, b) => b.length - a.length);
+            return companies.find(company => haystack.includes(company.toLowerCase())) || null;
+        }
+        function createAssistantReply(message, context = "") {
+            const normalized = typeof nlp === "function" ? nlp(message).text("normal").toLowerCase() : message.toLowerCase();
+            const directCompany = getCompanyFromMessage(message);
+            const contextualCompany = !directCompany && /\b(it|they|them|their|that company|that recruiter|there|its)\b/i.test(normalized) ? getCompanyFromMessage("", context) : null;
+            const company = directCompany || contextualCompany;
+            if (company) {
+                const placements = records.filter(record => record.company.toLowerCase() === company.toLowerCase());
+                const years = [...new Set(placements.map(record => record.academicYear))].sort();
+                const ctcValues = placements
+                    .filter(record => typeof record.packageLpa === "number")
+                    .map(record => ({ packageLpa: record.packageLpa, academicYear: record.academicYear }));
+                const packageText = ctcValues.length
+                    ? [...new Map(ctcValues.map(item => [`${item.packageLpa}-${item.academicYear}`, item])).values()].sort((left, right) => right.packageLpa - left.packageLpa).slice(0, 4).map(item => `${item.packageLpa} LPA (${item.academicYear})`).join(", ")
+                    : "No student-level CTC figure was published for these rows.";
+                return `### ${company} · placement activity\n\n- **Placement records:** ${placements.length.toLocaleString()}${years.length ? ` across ${years.join(", ")}` : ""}.\n- **Listed packages:** ${packageText}. These are individual student records, not company averages.\n- **Interview rounds:** Interview histories are not included in the available records.\n\nFor general preparation, review arrays, strings, hash maps, trees, graph traversal, and explaining your solutions clearly. These are general tips, not verified ${company} campus questions.\n\n[Open the company section](#companies-title)`;
+            }
+            if (/highest paying branch|highest paid branch|salary by branch|package by branch|branch.*package/i.test(normalized)) {
+                const topRecords = records
+                    .filter(record => typeof record.packageLpa === "number")
+                    .sort((left, right) => right.packageLpa - left.packageLpa)
+                    .slice(0, 5)
+                    .map(record => `- **${record.department}:** ${record.packageLpa} LPA at ${record.company} (${record.academicYear})`)
+                    .join("\n");
+                return `### Package records by branch\n\nBranch-level package averages are not available here. The highest individual listed packages are:\n\n${topRecords}\n\nThese are individual placements, not branch averages.`;
+            }
+            if (/30.?day|dsa plan|data structure|algorithm plan/i.test(normalized)) {
+                return `### 30-day DSA preparation plan\n\n- **Days 1–5 · Foundations:** arrays, strings, hashing, complexity, and two timed problems each day.\n- **Days 6–10 · Linear structures:** linked lists, stacks, queues, two pointers, and sliding windows.\n- **Days 11–15 · Search and trees:** binary search, traversals, BSTs, heaps, and tries.\n- **Days 16–21 · Graphs:** BFS, DFS, topological ordering, shortest paths, and union-find.\n- **Days 22–26 · Dynamic programming:** one-dimensional, grid, subsequence, and interval patterns.\n- **Days 27–30 · Interview practice:** mixed timed sets, revisit missed problems, and explain solutions aloud.\n\nThis is general preparation guidance, not a recruiter-issued syllabus.`;
+            }
+            if (/interview|campus round|rounds|questions|ask in/i.test(normalized)) {
+                return `### Interview preparation\n\nInterview questions and round histories are not included in the available placement records, so I can’t confirm a company-specific campus process.\n\nFor general practice, work through core DSA patterns, SQL, operating systems, DBMS, and project explanations. These are preparation suggestions, not reported interview questions.`;
+            }
+            if (/cohort|placement rate|placed students|year wise|historical|20\d{2}/i.test(normalized)) {
+                const year = normalized.match(/\b(20\d{2})\s*-\s*(\d{2}|20\d{2})\b/);
+                const cohort = year ? officialCohorts.find(item => item.academic_year === `${year[1]}-${year[2].slice(-2)}`) : officialCohorts.at(-1);
+                if (cohort) return `### ${cohort.academic_year} cohort\n\n**${cohort.placed.toLocaleString()} students were placed out of ${cohort.students.toLocaleString()} eligible students (${cohort.placement_rate}%).** Select this year in the dashboard to view its available records.`;
+            }
+            const branchCounts = [...new Set(records.map(record => record.department))].map(department => ({ department, offers: records.filter(record => record.department === department).length })).sort((a, b) => b.offers - a.offers).slice(0, 3);
+            return `### Placement records\n\nThere are **${records.length.toLocaleString()} placement records** in this view. Departments with the most records:\n\n${branchCounts.map(item => `- **${item.department}:** ${item.offers.toLocaleString()} records`).join("\n")}\n\nRecord counts are not placement rates. Ask about a company, a year, or a 30-day DSA plan.`;
+        }
+        function appendChatMessage(role, content, html = false) {
+            const message = document.createElement("div");
+            message.className = `chat-message${role === "user" ? " user" : ""} mb-3`;
+            if (html) message.innerHTML = content;
+            else message.textContent = content;
+            assistantLog.appendChild(message);
+            assistantLog.scrollTop = assistantLog.scrollHeight;
+            return message;
+        }
+        async function sendAssistantMessage(rawMessage) {
+            const message = rawMessage.trim();
+            if (!message || assistantForm.dataset.busy === "true") return;
+            assistantForm.dataset.busy = "true";
+            assistantForm.querySelector("button[type='submit']").disabled = true;
+            appendChatMessage("user", message);
+            const priorContext = chatHistory.slice(-6).map(entry => entry.content).join(" ");
+            chatHistory.push({ role: "user", content: message, timestamp: Date.now() });
+            const reply = createAssistantReply(message, priorContext);
+            chatHistory.push({ role: "assistant", content: reply, timestamp: Date.now() });
+            const typing = document.createElement("div");
+            typing.className = "chat-message mb-3";
+            typing.setAttribute("aria-label", "Assistant is composing a reply");
+            typing.innerHTML = '<div class="chat-typing"><span></span><span></span><span></span></div>';
+            assistantLog.appendChild(typing);
+            assistantLog.scrollTop = assistantLog.scrollHeight;
+            await chatDelay(420);
+            const replyNode = document.createElement("div");
+            replyNode.className = "chat-message mb-3";
+            typing.replaceWith(replyNode);
+            const typewriterStep = Math.max(80, Math.ceil(reply.length / 7));
+            for (let index = 0; index < reply.length; index += typewriterStep) {
+                replyNode.textContent = reply.slice(0, index + typewriterStep);
+                assistantLog.scrollTop = assistantLog.scrollHeight;
+                await chatDelay(28);
+            }
+            replyNode.innerHTML = formatChatMarkdown(reply);
+            assistantLog.scrollTop = assistantLog.scrollHeight;
+            assistantForm.dataset.busy = "false";
+            assistantForm.querySelector("button[type='submit']").disabled = false;
+        }
+        assistantForm.addEventListener("submit", event => {
+            event.preventDefault();
+            const message = assistantInput.value;
+            assistantInput.value = "";
+            sendAssistantMessage(message);
+        });
+        document.querySelectorAll("[data-chat-prompt]").forEach(button => button.addEventListener("click", () => {
+            setAssistantOpen(true);
+            document.getElementById("assistantShortcuts").classList.add("hidden");
+            sendAssistantMessage(button.dataset.chatPrompt);
+        }));
+    </script>
+
+</body></html>

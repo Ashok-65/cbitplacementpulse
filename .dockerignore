@@ -1,0 +1,14 @@
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.env
+.pytest_cache
+.mypy_cache
+.vscode
+*.db
+*.sqlite3
+Backend/instance/*.db
